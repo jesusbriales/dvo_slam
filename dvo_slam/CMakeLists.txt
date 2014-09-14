@@ -28,6 +28,9 @@ rosbuild_genmsg()
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 
+# Enable debugging messages
+set(CMAKE_CXX_FLAGS "-g -Wall")
+
 rosbuild_add_library(${PROJECT_NAME} 
   src/keyframe_tracker.cpp
   src/keyframe_graph.cpp

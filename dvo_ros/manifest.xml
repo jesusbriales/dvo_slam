@@ -26,7 +26,7 @@
   <depend package="visualization_msgs"/>
   <depend package="interactive_markers"/>
   
-  <depend package="common_rosdeps" />
+  <!-- <depend package="common_rosdeps" /> -->
   <rosdep name="eigen" />
   
   <export>

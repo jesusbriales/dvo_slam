@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.4.6)
+# subcmake_minimum_required(VERSION 2.4.6)
+cmake_minimum_required(VERSION 2.8.3)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -25,12 +26,18 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 # Eigen3 library
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen REQUIRED)
 include_directories(${Eigen_INCLUDE_DIRS})
 
 # VTK library
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
+
+# OpenCV Library
+find_package(OpenCV)
+include_directories(${OpenCV_INCLUDE_DIRS})
+#target_link_libraries(my_awesome_library ${OpenCV_LIBRARIES})
 
 # SSE flags
 rosbuild_check_for_sse()

@@ -53,6 +53,8 @@ CameraDenseTracker::CameraDenseTracker(ros::NodeHandle& nh, ros::NodeHandle& nh_
 {
   ROS_INFO("CameraDenseTracker::ctor(...)");
 
+  ROS_INFO("Aevena iNurgul");
+
   pose_pub_ = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("rgbd/pose", 1);
 
   ReconfigureServer::CallbackType reconfigure_server_callback = boost::bind(&CameraDenseTracker::handleConfig, this, _1, _2);
@@ -191,6 +193,9 @@ void CameraDenseTracker::handleImages(
     const sensor_msgs::CameraInfo::ConstPtr& depth_camera_info_msg
 )
 {
+ 
+  // ROS_INFO("CameraDenseTracker:handleImages");
+
   static stopwatch sw_callback("callback");
   sw_callback.start();
 
@@ -297,11 +302,14 @@ void CameraDenseTracker::handleImages(
     ROS_WARN("fail");
   }
 
+  ROS_INFO("CameraDenseTracker::handleImages--> prior to publish transform & pose");
+
   publishTransform(h, accumulated_transform * from_baselink_to_asus.inverse(), "base_link_estimate");
 //  publishTransform(rgb_image_msg->header, first_transform.inverse() * accumulated_transform, "asus_estimate");
 
   if(use_dense_tracking_estimate_)
   {
+    ROS_INFO("CameraDenseTracker::handleImages::publishPose");
     publishPose(h, accumulated_transform * from_baselink_to_asus.inverse(), "baselink_estimate");
   }
 
@@ -324,6 +332,9 @@ void CameraDenseTracker::publishTransform(const std_msgs::Header& header, const 
 
 void CameraDenseTracker::publishPose(const std_msgs::Header& header, const Eigen::Affine3d& transform, const std::string frame)
 {
+
+  ROS_INFO("CameraDenseTracker::publishPose");
+
   if(pose_pub_.getNumSubscribers() == 0) return;
 
   geometry_msgs::PoseWithCovarianceStampedPtr msg(new geometry_msgs::PoseWithCovarianceStamped);

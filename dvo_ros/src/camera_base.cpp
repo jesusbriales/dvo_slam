@@ -27,8 +27,17 @@ CameraBase::CameraBase(ros::NodeHandle& nh, ros::NodeHandle& nh_private) :
   nh_(nh),
   nh_private_(nh_private),
 
-  rgb_image_subscriber_(nh, "camera/rgb/image_rect", 1),
-  depth_image_subscriber_(nh, "camera/depth_registered/image_rect_raw", 1),
+  // Original (using distortion correct channel)
+  // rgb_image_subscriber_(nh, "camera/rgb/image_rect", 1),
+  // depth_image_subscriber_(nh, "camera/depth_registered/image_rect_raw", 1),
+
+  // Modified (non-rect)
+  // rgb_image_subscriber_(nh, "camera/rgb/image_raw", 1),
+  // depth_image_subscriber_(nh, "camera/depth_registered/image_raw", 1),
+
+  rgb_image_subscriber_(nh, "camera/rgb/image_rect_color", 1),
+  depth_image_subscriber_(nh, "/camera/depth_registered/hw_registered/image_rect_raw", 1),
+
   rgb_camera_info_subscriber_(nh, "camera/rgb/camera_info", 1),
   depth_camera_info_subscriber_(nh, "camera/depth_registered/camera_info", 1),
 
@@ -36,6 +45,7 @@ CameraBase::CameraBase(ros::NodeHandle& nh, ros::NodeHandle& nh_private) :
 
   connected(false)
 {
+  ROS_INFO("CameraBase:CameraBase --> subscribing to camera/rgb/image_raw");
 }
 
 CameraBase::~CameraBase()
@@ -50,6 +60,9 @@ bool CameraBase::isSynchronizedImageStreamRunning()
 
 void CameraBase::startSynchronizedImageStream()
 {
+
+  ROS_INFO("CameraBase:startSynchronizedImageStream");
+
   if(!connected)
   {
     connection = synchronizer_.registerCallback(boost::bind(&CameraBase::handleImages, this, _1, _2, _3, _4));

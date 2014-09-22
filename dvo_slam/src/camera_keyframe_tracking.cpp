@@ -196,6 +196,9 @@ void CameraKeyframeTracker::handleImages(
     const sensor_msgs::CameraInfo::ConstPtr& depth_camera_info_msg
 )
 {
+
+  ROS_INFO("dvo_slam::CameraKeyframeTracker::handleImages::Start");
+
   static stopwatch sw_callback("callback");
   sw_callback.start();
 
@@ -271,8 +274,9 @@ void CameraKeyframeTracker::handleImages(
   static stopwatch sw_match("match", 100);
   sw_match.start();
 
+  ROS_INFO("dvo_slam::CameraKeyframeTracker::handleImages::keyframe_tracker->Update::Start");
   keyframe_tracker->update(current, h.stamp, accumulated_transform);
-
+  ROS_INFO("dvo_slam::CameraKeyframeTracker::handleImages::keyframe_tracker->Update::Stop");
   sw_match.stopAndPrint();
 
   //vis_->trajectory("estimate")->

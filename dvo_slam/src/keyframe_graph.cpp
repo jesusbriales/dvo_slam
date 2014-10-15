@@ -776,7 +776,7 @@ private:
     // get last odometry vertex from global graph, which will become new keyframe vertex
     g2o::VertexSE3* kv = (g2o::VertexSE3*) keyframegraph_.vertex(next_odometry_vertex_id_);
     assert(kv != 0);
-    assert(keyframegraph_.changeId(kv, next_keyframe_id_));
+    keyframegraph_.changeId(kv, next_keyframe_id_);
 
     if(!keyframes_.empty())
     {

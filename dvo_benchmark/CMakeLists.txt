@@ -40,7 +40,8 @@ include_directories(${VTK_INCLUDE_DIRS})
 link_directories(${VTK_LIBRARY_DIRS})
 
 rosbuild_add_executable(benchmark
-     src/benchmark_slam.cpp
+#     src/benchmark_slam.cpp
+     src/benchmark_odo.cpp
 )
 
 #rosbuild_add_executable(experiment

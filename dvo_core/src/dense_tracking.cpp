@@ -151,11 +151,11 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
   bool accept = true;
 
-  //static stopwatch_collection sw_level(5, "l", 100);
-  //static stopwatch_collection sw_it(5, "it@l", 500);
-  //static stopwatch_collection sw_error(5, "err@l", 500);
-  //static stopwatch_collection sw_linsys(5, "linsys@l", 500);
-  //static stopwatch_collection sw_prep(5, "prep@l", 100);
+  static stopwatch_collection sw_level(5, "l", 100);
+  static stopwatch_collection sw_it(5, "it@l", 500);
+  static stopwatch_collection sw_error(5, "err@l", 500);
+  static stopwatch_collection sw_linsys(5, "linsys@l", 500);
+  static stopwatch_collection sw_prep(5, "prep@l", 100);
 
   if(points_error.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
     points_error.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
@@ -219,7 +219,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     wcur <<  1.0f / 255.0f,  1.0f, wcur_id * K.fx() / 255.0f, wcur_id * K.fy() / 255.0f, wcur_zd * K.fx(), wcur_zd * K.fy(), 0.0f, 0.0f;
     wref << -1.0f / 255.0f, -1.0f, wref_id * K.fx() / 255.0f, wref_id * K.fy() / 255.0f, wref_zd * K.fx(), wref_zd * K.fy(), 0.0f, 0.0f;
 
-//    sw_prep[itctx_.Level].start();
+	sw_prep[itctx_.Level].start();
 
 
     PointSelection::PointIterator first_point, last_point;
@@ -230,7 +230,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
     level_stats.ValidPixels = last_point - first_point;
 
-//    sw_prep[itctx_.Level].stopAndPrint();
+	sw_prep[itctx_.Level].stopAndPrint();
 
     NormalEquationsLeastSquares ls;
     Matrix6d A;
@@ -243,17 +243,17 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     compute_residuals_result.first_valid_flag = valid_residuals.begin();
 
 
-//    sw_level[itctx_.Level].start();
+	sw_level[itctx_.Level].start();
     do
     {
       level_stats.Iterations.push_back(IterationStats());
       IterationStats& iteration_stats = level_stats.Iterations.back();
       iteration_stats.Id = itctx_.Iteration;
 
-//      sw_it[itctx_.Level].start();
+	  sw_it[itctx_.Level].start();
 
       double total_error = 0.0f;
-//      sw_error[itctx_.Level].start();
+	  sw_error[itctx_.Level].start();
       Eigen::Affine3f transformf;
 
         inc = Sophus::SE3d::exp(x);
@@ -306,7 +306,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         itctx_.LastError = itctx_.Error;
         itctx_.Error = total_error;
 
-//      sw_error[itctx_.Level].stopAndPrint();
+	  sw_error[itctx_.Level].stopAndPrint();
 
       // accept the last increment?
       accept = itctx_.Error < itctx_.LastError;
@@ -322,7 +322,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       }
 
       // now build equation system
-//      sw_linsys[itctx_.Level].start();
+	  sw_linsys[itctx_.Level].start();
 
       WeightVectorType::iterator w_it = weights.begin();
 
@@ -346,13 +346,13 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       b = ls.b.cast<double>() + cfg.Mu * initial().log();
       x = A.ldlt().solve(b);
 
-//      sw_linsys[itctx_.Level].stopAndPrint();
+	  sw_linsys[itctx_.Level].stopAndPrint();
 
       iteration_stats.EstimateIncrement = x;
       iteration_stats.EstimateInformation = A;
 
       itctx_.Iteration++;
-//      sw_it[itctx_.Level].stopAndPrint();
+	  sw_it[itctx_.Level].stopAndPrint();
     }
     while(accept && x.lpNorm<Eigen::Infinity>() > cfg.Precision && !itctx_.IterationsExceeded());
 
@@ -362,7 +362,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     if(itctx_.IterationsExceeded())
       level_stats.TerminationCriterion = TerminationCriteria::IterationsExceeded;
 
-//    sw_level[itctx_.Level].stopAndPrint();
+	sw_level[itctx_.Level].stopAndPrint();
   }
 
   LevelStats& last_level = result.Statistics.Levels.back();

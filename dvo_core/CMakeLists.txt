@@ -39,6 +39,12 @@ find_package(OpenCV)
 include_directories(${OpenCV_INCLUDE_DIRS})
 #target_link_libraries(my_awesome_library ${OpenCV_LIBRARIES})
 
+# HDF5 library for massive storage
+# TODO: Make dependent on activation flag
+find_package(HDF5) # Find non-cmake built HDF5
+include_directories(${HDF5_INCLUDE_DIR})
+set(H5CPP_LIBS hdf5_cpp)
+
 # SSE flags
 rosbuild_check_for_sse()
 
@@ -69,6 +75,8 @@ rosbuild_add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     tbb
     boost_thread
+    ${HDF5_LIBRARIES}
+    ${H5CPP_LIBS}
 )
 
 rosbuild_add_library(dvo_visualization

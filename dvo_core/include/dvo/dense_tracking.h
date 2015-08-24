@@ -202,12 +202,14 @@ private:
 
   IterationContext itctx_;
 
+  // Tracker operators for different sub-tasks
   dvo::core::WeightCalculation weight_calculation_;
   dvo::core::PointSelection reference_selection_;
   dvo::core::ValidPointAndGradientThresholdPredicate selection_predicate_;
 
+  // Vectors for the values corresponding to each point finally put in the linear system
+  // These are unallocated, so they must be resized before use
   dvo::core::PointWithIntensityAndDepth::VectorType points, points_error;
-
   ResidualVectorType residuals;
   WeightVectorType weights;
 };

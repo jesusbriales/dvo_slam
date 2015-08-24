@@ -111,6 +111,8 @@ void computeResiduals(const PointIterator& first_point, const PointIterator& las
     Vector8f reference = p_it->getIntensityAndDepthWithDerivativesVec8f();
     reference(1) = transformed_point(2);
 
+    // compute residues and derivatives in the point from both images
+    // the weights provide the correct scaling and signing for operations upon the sum of both parameters (ref and interpolated)
     result.last_point_error->getIntensityAndDepthWithDerivativesVec8f() = current_weight.cwiseProduct(interpolated) + reference_weight.cwiseProduct(reference);
     *result.last_residual = result.last_point_error->getIntensityAndDepthVec2f();
 
@@ -147,10 +149,14 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
 
   Eigen::Matrix<float, 3, 4> KT = K * transform.matrix().block<3, 4>(0, 0);
 
+  // create 1 m128 for each row in KT
+  // pack 4 floats into m128
   __m128 kt_r1 = _mm_setr_ps(KT(0, 0), KT(0, 1), KT(0, 2), KT(0, 3));
   __m128 kt_r2 = _mm_setr_ps(KT(1, 0), KT(1, 1), KT(1, 2), KT(1, 3));
   __m128 kt_r3 = _mm_setr_ps(KT(2, 0), KT(2, 1), KT(2, 2), KT(2, 3));
 
+  // create m128 for weights
+  // copy 4 contiguous floats into m128
   __m128 current_weight_a = _mm_load_ps(current_weight.data());
   __m128 current_weight_b = _mm_load_ps(current_weight.data() + 4);
 
@@ -170,20 +176,24 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
 
   for(PointIterator p_it = first_point; p_it != lp; p_it += 2)
   {
-    // load points
+    // load points in camera frame
     __m128 p1 = _mm_load_ps((p_it + 0)->point.data);
     __m128 p2 = _mm_load_ps((p_it + 1)->point.data);
 
-    // transform
-    __m128 pt1_x = _mm_mul_ps(kt_r1, p1);
-    __m128 pt2_x = _mm_mul_ps(kt_r1, p2);
+    // transform points to projective space in transformed camera
+    // compute element-wise product of elements in KT row and point:
+    // _m128 = [ kt1*p1, kt2*p2, kt3*p3, kt4*p4 ]
+    // pt<i>_<x>, <i> nr of point, <x> component
+    __m128 pt1_x = _mm_mul_ps(kt_r1, p1); // x component of the 1st point
+    __m128 pt2_x = _mm_mul_ps(kt_r1, p2); // x component of the 2nd point
 
-    __m128 pt1_y = _mm_mul_ps(kt_r2, p1);
-    __m128 pt2_y = _mm_mul_ps(kt_r2, p2);
+    __m128 pt1_y = _mm_mul_ps(kt_r2, p1); // y component of the 1st point
+    __m128 pt2_y = _mm_mul_ps(kt_r2, p2); // y component of the 2nd point
 
-    __m128 pt1_z = _mm_mul_ps(kt_r3, p1);
-    __m128 pt2_z = _mm_mul_ps(kt_r3, p2);
+    __m128 pt1_z = _mm_mul_ps(kt_r3, p1); // z component of the 1st point
+    __m128 pt2_z = _mm_mul_ps(kt_r3, p2); // z component of the 2nd point
 
+    // _mm_hadd_ps adds pairs of contiguous elements and pack in dst
     __m128 pt1_xy_pt2_xy = _mm_hadd_ps(_mm_hadd_ps(pt1_x, pt1_y), _mm_hadd_ps(pt2_x, pt2_y));
     __m128 pt1_zz_pt2_zz = _mm_hadd_ps(_mm_hadd_ps(pt1_z, pt1_z), _mm_hadd_ps(pt2_z, pt2_z));
 
@@ -195,7 +205,7 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
     __m128i pt1_uv_pt2_uv_int = _mm_cvtps_epi32(pt1_uv_pt2_uv);
     __m128 pt1_u0v0_pt2_u0v0 = _mm_cvtepi32_ps(pt1_uv_pt2_uv_int);
 
-    // compute weights
+    // compute weights (for interpolation, [0-1]?)
     __m128 pt1w1_uv_pt2w1_uv = _mm_sub_ps(pt1_uv_pt2_uv, pt1_u0v0_pt2_u0v0);
     __m128 pt1w0_uv_pt2w0_uv = _mm_sub_ps(ONES, pt1w1_uv_pt2w1_uv);
 
@@ -209,6 +219,9 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
 
     if((bounds_mask & 3) == 3)
     {
+      // in case the pixel for point 1 (1?) is inside the bounds
+
+      // get image values (a Vec8f) for point 1, in lxly and lxuy (l-lower, u-upper)
       const float *x0y0_ptr = current.acceleration.ptr<float>(address[1], address[0]);
       const float *x0y1_ptr = current.acceleration.ptr<float>(address[1] + 1, address[0]);
 
@@ -301,6 +314,8 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
 
     if((bounds_mask & 12) == 12)
     {
+      // in case the pixel for point 2 (2?) is inside the bounds
+
       const float *x0y0_ptr = current.acceleration.ptr<float>(address[3], address[2]);
       const float *x0y1_ptr = current.acceleration.ptr<float>(address[3] + 1, address[2]);
 

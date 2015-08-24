@@ -157,6 +157,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   static stopwatch_collection sw_linsys(5, "linsys@l", 500);
   static stopwatch_collection sw_prep(5, "prep@l", 100);
 
+  // allocate the tracker vectors for points, residuals and weights
+  // in order to store the residue-related values for the linear system
   if(points_error.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
     points_error.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
   if(residuals.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
@@ -216,12 +218,27 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     // i z idx idy zdx zdy
     float wcur_id = 0.5f, wref_id = 0.5f, wcur_zd = 1.0f, wref_zd = 0.0f;
 
-    wcur <<  1.0f / 255.0f,  1.0f, wcur_id * K.fx() / 255.0f, wcur_id * K.fy() / 255.0f, wcur_zd * K.fx(), wcur_zd * K.fy(), 0.0f, 0.0f;
-    wref << -1.0f / 255.0f, -1.0f, wref_id * K.fx() / 255.0f, wref_id * K.fy() / 255.0f, wref_zd * K.fx(), wref_zd * K.fy(), 0.0f, 0.0f;
 
 	sw_prep[itctx_.Level].start();
 
+    // set the coefficients for the combination of both image variables in the residue,
+    // since for the IntensityAndDepth aligned 8-vector with elements v = {i,z,idx,idy,zdx,zdy,_,_}
+    // the value to use in the increment computation (residues and derivatives)
+    // takes a different form for each variable
+    // (please note one image must be previously warped onto the other):
+    // res_i = (cur_i - ref_i)/255 [intensity normalized to [0-1] in the residue]
+    // res_z = (cur_z - ref_z) [values in m already]
+    // idx = ave(cur_idx + ref_idx)/255 * K.fx [average, normalized, scaled to m]
+    // idy = ave(cur_idy + ref_idy)/255 * K.fy [average, normalized, scaled to m]
+    // zdx = cur_zdx * K.fx (from one image, scaled to m)
+    // zdy = cur_zdy * K.fy (from one image, scaled to m)
+    // Note on derivatives:
+    // since image gradients measure distances between points in pixels,
+    // scaling is necessary to get derivatives wrt real world distances (usually in m)
+    wcur <<  1.0f / 255.0f,    1.0f,  wcur_id * K.fx() / 255.0f, wcur_id * K.fy() / 255.0f,   wcur_zd * K.fx(), wcur_zd * K.fy(),   0.0f, 0.0f;
+    wref << -1.0f / 255.0f,   -1.0f,  wref_id * K.fx() / 255.0f, wref_id * K.fy() / 255.0f,   wref_zd * K.fx(), wref_zd * K.fy(),   0.0f, 0.0f;
 
+    // select the pixels to use from the reference image
     PointSelection::PointIterator first_point, last_point;
     reference.select(itctx_.Level, first_point, last_point);
     cur.buildAccelerationStructure();
@@ -232,6 +249,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
 	sw_prep[itctx_.Level].stopAndPrint();
 
+    // create variables for the linear system
     NormalEquationsLeastSquares ls;
     Matrix6d A;
     Vector6d x, b;
@@ -244,6 +262,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
 
 	sw_level[itctx_.Level].start();
+    // solve the non-linear problem iteratively, by linear approximations
     do
     {
       level_stats.Iterations.push_back(IterationStats());

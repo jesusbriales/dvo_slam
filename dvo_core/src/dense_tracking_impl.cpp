@@ -137,6 +137,7 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
 {
   result.last_point_error = result.first_point_error;
   result.last_residual = result.first_residual;
+  result.last_jacobian = result.first_jacobian;
 
   if(Debug)
     result.last_valid_flag = result.first_valid_flag;
@@ -293,8 +294,11 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
           __m128 residual_b = _mm_add_ps(_mm_mul_ps(current_weight_b, b), _mm_mul_ps(reference_weight_b, reference_b));
           _mm_store_ps(result.last_point_error->intensity_and_depth.data + 4, residual_b);
 
+          // directly copy precomputed jacobian (or recompute, TODO)
+          *(result.last_jacobian) = (p_it + 0)->getIntensityAndDepthJacobianMat26();
           ++result.last_point_error;
           ++result.last_residual;
+          ++result.last_jacobian;
         }
         else
         {
@@ -387,8 +391,11 @@ void computeResidualsSse(const PointIterator& first_point, const PointIterator& 
           __m128 residual_b = _mm_add_ps(_mm_mul_ps(current_weight_b, b), _mm_mul_ps(reference_weight_b, reference_b));
           _mm_store_ps(result.last_point_error->intensity_and_depth.data + 4, residual_b);
 
+          // directly copy precomputed jacobian (or recompute, TODO)
+          *(result.last_jacobian) = (p_it + 1)->getIntensityAndDepthJacobianMat26();
           ++result.last_point_error;
           ++result.last_residual;
+          ++result.last_jacobian;
         }
         else
         {

@@ -56,10 +56,21 @@ struct EIGEN_ALIGN16 PointWithIntensityAndDepth
     };
   } IntensityAndDepth;
 
+  typedef EIGEN_ALIGN16 union
+  {
+    float data[12];
+    struct
+    {
+      float jaci[6];
+      float jacz[6];
+    };
+  } Jacobians;
+
   typedef std::vector<PointWithIntensityAndDepth, Eigen::aligned_allocator<PointWithIntensityAndDepth> > VectorType;
 
   Point point;
   IntensityAndDepth intensity_and_depth;
+  Jacobians jacobians;
 
   Eigen::Vector4f::AlignedMapType getPointVec4f()
   {
@@ -86,6 +97,25 @@ struct EIGEN_ALIGN16 PointWithIntensityAndDepth
   {
     return Vector8f::AlignedMapType(intensity_and_depth.data);
   }
+
+  Vector6::AlignedMapType getIntensityJacobianVec6f()
+  {
+    return Vector6::AlignedMapType(jacobians.data);
+  }
+
+  Vector6::MapType getDepthJacobianVec6f()
+  {
+    return Vector6::MapType(jacobians.data + 6);
+  }
+
+  Matrix2x6 getIntensityAndDepthJacobianMat26()
+  {
+    Matrix2x6 J;
+    J.row(0) = Vector6::AlignedMapType(jacobians.jaci);
+    J.row(1) = Vector6::MapType(jacobians.jacz);
+    return J;
+  }
+
 };
 
 typedef Eigen::Matrix<float, 4, Eigen::Dynamic, Eigen::ColMajor> PointCloud;

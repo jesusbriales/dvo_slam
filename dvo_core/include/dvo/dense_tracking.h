@@ -167,6 +167,7 @@ public:
   static inline void compute3rdRowOfJacobianOfTransformation(const dvo::core::Vector4& p, dvo::core::Vector6& j);
 
   typedef std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > ResidualVectorType;
+  typedef std::vector<core::Matrix2x6, Eigen::aligned_allocator<core::Matrix2x6> > JacobianVectorType;
   typedef std::vector<float> WeightVectorType;
 private:
   struct IterationContext
@@ -211,6 +212,7 @@ private:
   // These are unallocated, so they must be resized before use
   dvo::core::PointWithIntensityAndDepth::VectorType points, points_error;
   ResidualVectorType residuals;
+  JacobianVectorType jacobians;
   WeightVectorType weights;
 };
 

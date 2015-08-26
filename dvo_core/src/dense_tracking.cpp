@@ -163,6 +163,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     points_error.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
   if(residuals.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
     residuals.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
+  if(jacobians.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
+    jacobians.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
   if(weights.size() < reference.getMaximumNumberOfPoints(cfg.LastLevel))
     weights.resize(reference.getMaximumNumberOfPoints(cfg.LastLevel));
 
@@ -246,6 +248,25 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     level_stats.Id = itctx_.Level;
     level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
     level_stats.ValidPixels = last_point - first_point;
+    // compute jacobian at selected points
+    // precompute jacobian using this image
+    Eigen::Matrix2f scale_i, scale_z;
+    scale_i << K.fx() / 255.0f, 0,
+               0, K.fy() / 255.0f;
+    scale_z << K.fx(), 0,
+               0, K.fy();
+    Matrix2x6 Jw;
+    Vector6 Jz, intensityJacobian, depthJacobian;
+    for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+        point_it != last_point; ++point_it)
+    {
+      computeJacobianOfProjectionAndTransformation(point_it->getPointVec4f(), Jw);
+      compute3rdRowOfJacobianOfTransformation(point_it->getPointVec4f(), Jz);
+      intensityJacobian = point_it->getIntensityDerivativeVec2f().transpose() * scale_i * Jw;
+      depthJacobian = point_it->getDepthDerivativeVec2f().transpose() * scale_z * Jw - Jz.transpose();
+      point_it->getIntensityJacobianVec6f() = intensityJacobian;
+      point_it->getDepthJacobianVec6f() = depthJacobian;
+    }
 
 	sw_prep[itctx_.Level].stopAndPrint();
 
@@ -258,6 +279,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     ComputeResidualsResult compute_residuals_result;
     compute_residuals_result.first_point_error = points_error.begin();
     compute_residuals_result.first_residual = residuals.begin();
+    compute_residuals_result.first_jacobian = jacobians.begin();
     compute_residuals_result.first_valid_flag = valid_residuals.begin();
 
 
@@ -343,6 +365,16 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       // now build equation system
 	  sw_linsys[itctx_.Level].start();
 
+      ResidualVectorType::iterator r_it, last_r_it;
+      r_it = residuals.begin();
+      last_r_it = compute_residuals_result.last_residual;
+      JacobianVectorType::iterator j_it = jacobians.begin();
+      WeightVectorType::iterator w_it = weights.begin();
+      ls.initialize(1);
+      for(;r_it != last_r_it; ++r_it, ++j_it, ++w_it)
+      {
+        ls.update(*j_it, *r_it, (*w_it) * precision);
+      }
       WeightVectorType::iterator w_it = weights.begin();
 
       Matrix2x6 J, Jw;

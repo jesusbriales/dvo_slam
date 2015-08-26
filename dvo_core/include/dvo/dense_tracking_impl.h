@@ -30,6 +30,7 @@ namespace core
 
 typedef PointWithIntensityAndDepth::VectorType::iterator PointIterator;
 typedef DenseTracker::ResidualVectorType::iterator ResidualIterator;
+typedef DenseTracker::JacobianVectorType::iterator JacobianIterator;
 typedef DenseTracker::WeightVectorType::iterator WeightIterator;
 typedef std::vector<uint8_t>::iterator ValidFlagIterator;
 
@@ -40,6 +41,9 @@ struct ComputeResidualsResult
 
   ResidualIterator first_residual;
   ResidualIterator last_residual;
+
+  JacobianIterator first_jacobian;
+  JacobianIterator last_jacobian;
 
   ValidFlagIterator first_valid_flag;
   ValidFlagIterator last_valid_flag;

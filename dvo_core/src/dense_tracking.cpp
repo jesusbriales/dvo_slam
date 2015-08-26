@@ -257,22 +257,24 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     // precompute jacobian using this image
     sw_prejac[itctx_.Level].start();
 
-    Eigen::Matrix2f scale_i, scale_z;
-    scale_i << K.fx() / 255.0f, 0,
-               0, K.fy() / 255.0f;
-    scale_z << K.fx(), 0,
-               0, K.fy();
-    Matrix2x6 Jw;
-    Vector6 Jz, intensityJacobian, depthJacobian;
-    for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
-        point_it != last_point; ++point_it)
     {
-      computeJacobianOfProjectionAndTransformation(point_it->getPointVec4f(), Jw);
-      compute3rdRowOfJacobianOfTransformation(point_it->getPointVec4f(), Jz);
-      intensityJacobian = point_it->getIntensityDerivativeVec2f().transpose() * scale_i * Jw;
-      depthJacobian = point_it->getDepthDerivativeVec2f().transpose() * scale_z * Jw - Jz.transpose();
-      point_it->getIntensityJacobianVec6f() = intensityJacobian;
-      point_it->getDepthJacobianVec6f() = depthJacobian;
+      Eigen::Matrix2f scale_i, scale_z;
+      scale_i << K.fx() / 255.0f, 0,
+          0, K.fy() / 255.0f;
+      scale_z << K.fx(), 0,
+          0, K.fy();
+      Matrix2x6 Jw;
+      Vector6 Jz, intensityJacobian, depthJacobian;
+      for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+          point_it != last_point; ++point_it)
+      {
+        computeJacobianOfProjectionAndTransformation(point_it->getPointVec4f(), Jw);
+        compute3rdRowOfJacobianOfTransformation(point_it->getPointVec4f(), Jz);
+        intensityJacobian = point_it->getIntensityDerivativeVec2f().transpose() * scale_i * Jw;
+        depthJacobian = point_it->getDepthDerivativeVec2f().transpose() * scale_z * Jw - Jz.transpose();
+        point_it->getIntensityJacobianVec6f() = intensityJacobian;
+        point_it->getDepthJacobianVec6f() = depthJacobian;
+      }
     }
 
     sw_prejac[itctx_.Level].stop();

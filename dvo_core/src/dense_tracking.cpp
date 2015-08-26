@@ -155,7 +155,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   static stopwatch_collection sw_it(5, "it@l", 500);
   static stopwatch_collection sw_error(5, "err@l", 500);
   static stopwatch_collection sw_linsys(5, "linsys@l", 500);
-  static stopwatch_collection sw_prep(5, "prep@l", 100);
+  static stopwatch_collection sw_presel(5, "presel@l", 100);
+  static stopwatch_collection sw_prejac(5, "prejac@l", 100);
 
   // allocate the tracker vectors for points, residuals and weights
   // in order to store the residue-related values for the linear system
@@ -216,12 +217,17 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     RgbdImage& cur = current.level(itctx_.Level);
     const IntrinsicMatrix& K = cur.camera().intrinsics();
 
-    Vector8f wcur, wref;
-    // i z idx idy zdx zdy
-    float wcur_id = 0.5f, wref_id = 0.5f, wcur_zd = 1.0f, wref_zd = 0.0f;
+    // select the pixels to use from the reference image
+    sw_presel[itctx_.Level].start();
 
+    PointSelection::PointIterator first_point, last_point;
+    reference.select(itctx_.Level, first_point, last_point);
+    cur.buildAccelerationStructure();
 
-	sw_prep[itctx_.Level].start();
+    level_stats.Id = itctx_.Level;
+    level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
+    level_stats.ValidPixels = last_point - first_point;
+
 
     // set the coefficients for the combination of both image variables in the residue,
     // since for the IntensityAndDepth aligned 8-vector with elements v = {i,z,idx,idy,zdx,zdy,_,_}
@@ -237,19 +243,20 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     // Note on derivatives:
     // since image gradients measure distances between points in pixels,
     // scaling is necessary to get derivatives wrt real world distances (usually in m)
+    Vector8f wcur, wref;
+    //float wcur_id = 0.5f, wref_id = 0.5f, wcur_zd = 1.0f, wref_zd = 0.0f;
+    float wcur_id = 0.0f, wref_id = 1.0f, wcur_zd = 0.0f, wref_zd = 1.0f;
+    // Elems:     i             z              idx                      idy                         zdx               zdy
     wcur <<  1.0f / 255.0f,    1.0f,  wcur_id * K.fx() / 255.0f, wcur_id * K.fy() / 255.0f,   wcur_zd * K.fx(), wcur_zd * K.fy(),   0.0f, 0.0f;
     wref << -1.0f / 255.0f,   -1.0f,  wref_id * K.fx() / 255.0f, wref_id * K.fy() / 255.0f,   wref_zd * K.fx(), wref_zd * K.fy(),   0.0f, 0.0f;
 
-    // select the pixels to use from the reference image
-    PointSelection::PointIterator first_point, last_point;
-    reference.select(itctx_.Level, first_point, last_point);
-    cur.buildAccelerationStructure();
 
-    level_stats.Id = itctx_.Level;
-    level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
-    level_stats.ValidPixels = last_point - first_point;
+    sw_presel[itctx_.Level].stop();
+
     // compute jacobian at selected points
     // precompute jacobian using this image
+    sw_prejac[itctx_.Level].start();
+
     Eigen::Matrix2f scale_i, scale_z;
     scale_i << K.fx() / 255.0f, 0,
                0, K.fy() / 255.0f;
@@ -268,7 +275,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       point_it->getDepthJacobianVec6f() = depthJacobian;
     }
 
-	sw_prep[itctx_.Level].stopAndPrint();
+    sw_prejac[itctx_.Level].stop();
 
     // create variables for the linear system
     NormalEquationsLeastSquares ls;

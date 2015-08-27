@@ -13,3 +13,4 @@ mu: 0.05
 min_intensity_deriv: 0.0
 min_depth_deriv: 0.0
 reconstruction: true
+#sampling_proportion: 1.0   # Temporarily an arg in the launch file

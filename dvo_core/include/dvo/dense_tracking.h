@@ -48,6 +48,7 @@ public:
 
     bool UseInitialEstimate;
     bool UseWeighting;
+    float SamplingProportion;
 
     bool UseParallel;
 
@@ -199,7 +200,7 @@ private:
     double ErrorDiff() const;
   };
 
-  Config cfg;
+  Config cfg; // Struct with user configurable parameters
 
   IterationContext itctx_;
 
@@ -229,6 +230,7 @@ std::ostream& operator<< (std::basic_ostream<CharT, Traits> &out, const dvo::Den
   << ", Mu = " << config.Mu
   << ", Use Initial Estimate = " << (config.UseInitialEstimate ? "true" : "false")
   << ", Use Weighting = " << (config.UseWeighting ? "true" : "false")
+  << ", Sampling Proportion = " << config.SamplingProportion
   << ", Scale Estimator = " << dvo::core::ScaleEstimators::str(config.ScaleEstimatorType)
   << ", Scale Estimator Param = " << config.ScaleEstimatorParam
   << ", Influence Function = " << dvo::core::InfluenceFunctions::str(config.InfluenceFuntionType)

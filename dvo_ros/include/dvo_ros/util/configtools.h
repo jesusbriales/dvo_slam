@@ -73,6 +73,7 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
   tracker_cfg.Precision = config.precision;
   tracker_cfg.UseInitialEstimate = config.use_initial_estimate;
   tracker_cfg.UseWeighting = config.use_weighting;
+  tracker_cfg.SamplingProportion = config.sampling_proportion;
   tracker_cfg.ScaleEstimatorType = scale_estimator;
   tracker_cfg.ScaleEstimatorParam = config.scale_estimator_param;
   tracker_cfg.InfluenceFuntionType = influence_function;

@@ -36,6 +36,7 @@
 #include <dvo/util/histogram.h>
 //#include <dvo/visualization/visualizer.h>
 
+#include <boost/range/numeric.hpp> // For accumulate function
 namespace dvo
 {
 
@@ -157,6 +158,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   static stopwatch_collection sw_linsys(5, "linsys@l", 500);
   static stopwatch_collection sw_presel(5, "presel@l", 100);
   static stopwatch_collection sw_prejac(5, "prejac@l", 100);
+  static stopwatch_collection sw_sel(5, "sel@l", 100);
 
   // allocate the tracker vectors for points, residuals and weights
   // in order to store the residue-related values for the linear system
@@ -433,6 +435,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       // now build equation system
 	  sw_linsys[itctx_.Level].start();
 
+#define PRECOMPUTED 1
+#if PRECOMPUTED
       ResidualVectorType::iterator r_it, last_r_it;
       r_it = residuals.begin();
       last_r_it = compute_residuals_result.last_residual;
@@ -443,8 +447,10 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       {
         ls.update(*j_it, *r_it, (*w_it) * precision);
       }
+#else
+      ResidualVectorType::iterator r_it = residuals.begin();
+      JacobianVectorType::iterator j_it = jacobians.begin();
       WeightVectorType::iterator w_it = weights.begin();
-
       Matrix2x6 J, Jw;
       Eigen::Vector2f Ji;
       Vector6 Jz;
@@ -459,6 +465,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
         ls.update(J, e_it->getIntensityAndDepthVec2f(), (*w_it) * precision);
       }
+#endif
       ls.finish();
 
       A = ls.A.cast<double>() + cfg.Mu * Matrix6d::Identity();

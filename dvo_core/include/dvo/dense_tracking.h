@@ -104,7 +104,7 @@ public:
 
   struct LevelStats
   {
-    size_t Id, MaxValidPixels, ValidPixels;
+    size_t Id, MaxValidPixels, ValidPixels, SelectedPixels;
     TerminationCriteria::Enum TerminationCriterion;
     IterationStatsVector Iterations;
 
@@ -273,7 +273,11 @@ std::ostream& operator<< (std::basic_ostream<CharT, Traits> &o, const dvo::Dense
     break;
   }
 
-  o << "Level: " << s.Id << " Pixel: " << s.ValidPixels << "/" << s.MaxValidPixels << " Termination: " << termination << " Iterations: " << s.Iterations.size() << std::endl;
+  o << "Level: " << s.Id
+    << " Pixel (sel/valid/total): " << s.SelectedPixels << "/" << s.ValidPixels << "/" << s.MaxValidPixels
+    << " Termination: " << termination
+    << " Iterations: " << s.Iterations.size()
+    << std::endl;
 
   for(dvo::DenseTracker::IterationStatsVector::const_iterator it = s.Iterations.begin(); it != s.Iterations.end(); ++it)
   {

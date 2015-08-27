@@ -218,6 +218,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     const IntrinsicMatrix& K = cur.camera().intrinsics();
 
     // select the pixels to use from the reference image
+    // using the validity of the point
+    // plus some threshold in the derivatives
     sw_presel[itctx_.Level].start();
 
     PointSelection::PointIterator first_point, last_point;
@@ -226,7 +228,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
     level_stats.Id = itctx_.Level;
     level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
-    level_stats.ValidPixels = last_point - first_point;
+    size_t numValidPixels = last_point - first_point;
+    level_stats.ValidPixels = numValidPixels;
 
 
     // set the coefficients for the combination of both image variables in the residue,
@@ -278,6 +281,62 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     }
 
     sw_prejac[itctx_.Level].stop();
+
+
+    // select the most informative pixels to speed the rest of steps
+    sw_sel[itctx_.Level].start();
+
+    if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+      // TODO: Try different proportions for different levels
+    { // begin sampling block
+      // compute utility (some metric) for each pixel
+      std::vector<float> utilities (numValidPixels); // one element per valid pixel
+      {
+        std::vector<float>::iterator util_it = utilities.begin();
+        for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+            point_it != last_point; ++point_it, ++util_it)
+        {
+          // compute utility as the squared norm of the photometric jacobian
+          *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
+        }
+      }
+
+      // for a certain percentage of sampling
+      // compute the parameters for the probability profile
+      // CURRENTLY: GMS method, lowThres = 0; upThres = max;
+      float sumOfUtilities = boost::accumulate(utilities,0);
+      float alpha = cfg.SamplingProportion * numValidPixels / sumOfUtilities;
+
+      // compute probability of pixel and sample
+      {
+        std::vector<float>::iterator util_it = utilities.begin();
+        PointWithIntensityAndDepth::VectorType::iterator selected_it = first_point;
+        double probability;
+        for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+            point_it != last_point; ++point_it, ++util_it)
+        {
+          // compute probability from the profile
+          probability = alpha * *util_it;
+          // generate random sampling for given probability
+          float x = (float)std::rand()/(float)(RAND_MAX/1);
+          bool doSample = false;
+          if(probability > x) doSample = true;
+          if(doSample)
+          {
+            *selected_it = *point_it;
+            ++selected_it;
+          }
+        }
+
+        last_point = selected_it - 1;
+      }
+    } // end sampling block
+
+    size_t numSelectedPixels = last_point - first_point;
+    level_stats.SelectedPixels = numSelectedPixels;
+
+    sw_sel[itctx_.Level].stop();
+
 
     // create variables for the linear system
     NormalEquationsLeastSquares ls;

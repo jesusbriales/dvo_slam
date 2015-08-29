@@ -46,11 +46,11 @@ void ProbabilityProfile::computeParameters( const UtilityVector& utilities, floa
 
   // Set slope as a proportion of the computed alpha (>1.0)
   // TODO: Set heuristically
-  slope = 2.0 * alpha;
+  slope_ = 2.0 * alpha;
 
   // Set maximum selection probability
   // TODO: Set heuristically, see Oreshkin's
-  probMax = std::min( 1.0, 10.0 * sampling_ratio );
+  probMax_ = std::min( 1.0, 10.0 * sampling_ratio );
 
   // Solve lower threshold for the given sampling ratio constraint
   float minValue = 0.0;
@@ -58,7 +58,7 @@ void ProbabilityProfile::computeParameters( const UtilityVector& utilities, floa
   float initialInterval[] = {minValue, maxValue};
   // TODO: Set as parameter
   float tolerance = 1.0;
-  lowerThres = bisect( ExpectedErrorInNumOfSamples(*this, utilities, desiredNumOfSamples),
+  lowerThres_ = bisect( ExpectedErrorInNumOfSamples(*this, utilities, desiredNumOfSamples),
                        initialInterval[0], initialInterval[1], tolerance );
 }
 
@@ -79,7 +79,7 @@ float ExpectedErrorInNumOfSamples::operator() (float lowerThres) const
   accumulator_set<float, stats<tag::sum> > acc;
   for(UtilityVector::const_iterator util_it = utilities_.begin(); util_it!=utilities_.end(); ++util_it)
   {
-    acc( probProfile_(lowerThres) );
+    acc( probProfile_(*util_it, lowerThres) );
   }
   float sumValue = sum( acc );
   return ( sumValue - numSamples_ );
@@ -93,7 +93,9 @@ float bisect( const ExpectedErrorInNumOfSamples& fun, float a, float b, float to
 
   // check that a solution exists
   if( fa * fb > 0 )
+  {
     std::cout << "There is no solution for lt" << std::endl;
+  }
 
   float distanceThres = 2*tolerance;
   float c;

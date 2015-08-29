@@ -42,15 +42,28 @@ public:
 
   inline Probability operator() (Utility point_utility) const
   {
+    if( point_utility > lowerThres_ )
+    {
+      return std::min( probMax_, slope_ * (point_utility - lowerThres_) );
+    }
+    else
+      return 0;
+  }
+  inline Probability operator() (Utility point_utility, float lowerThres) const
+  {
     if( point_utility > lowerThres )
     {
-      return std::min( probMax, slope * (point_utility - lowerThres) );
+      return std::min( probMax_, slope_ * (point_utility - lowerThres) );
     }
     else
       return 0;
   }
 
   void computeParameters( const UtilityVector& utilities, float sampling_ratio );
+  inline void setLowerThres( float lowerThres )
+  {
+    lowerThres_ = lowerThres;
+  }
 
   template <typename iterator_type>
   void samplePoints(
@@ -58,9 +71,9 @@ public:
       iterator_type& first_point, iterator_type& last_point );
 
 private:
-  float lowerThres, upperThres;
-  float slope;
-  float probMax; // Maximum selection probability
+  float lowerThres_, upperThres_;
+  float slope_;
+  float probMax_; // Maximum selection probability
 };
 
 class ExpectedErrorInNumOfSamples

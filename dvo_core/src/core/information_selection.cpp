@@ -62,16 +62,6 @@ void ProbabilityProfile::computeParameters( const UtilityVector& utilities, floa
                        initialInterval[0], initialInterval[1], tolerance );
 }
 
-Probability ProbabilityProfile::operator() (Utility point_utility) const
-{
-  if( point_utility > lowerThres )
-  {
-    return std::min( probMax, slope * (point_utility - lowerThres) );
-  }
-  else
-    return 0;
-}
-
 ExpectedErrorInNumOfSamples::ExpectedErrorInNumOfSamples(
     const ProbabilityProfile& probProfile,
     const UtilityVector& utilities,

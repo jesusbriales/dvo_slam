@@ -40,7 +40,15 @@ class ProbabilityProfile
 public:
 //  ProbabilityProfile();
 
-  inline Probability operator() (Utility point_utility) const;
+  inline Probability operator() (Utility point_utility) const
+  {
+    if( point_utility > lowerThres )
+    {
+      return std::min( probMax, slope * (point_utility - lowerThres) );
+    }
+    else
+      return 0;
+  }
 
   void computeParameters( const UtilityVector& utilities, float sampling_ratio );
 

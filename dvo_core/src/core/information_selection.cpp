@@ -91,6 +91,10 @@ float bisect( const ExpectedErrorInNumOfSamples& fun, float a, float b, float to
   float fa,fb,fc;
   fa = fun(a); fb = fun(b);
 
+  // check that a solution exists
+  if( fa * fb > 0 )
+    std::cout << "There is no solution for lt" << std::endl;
+
   float distanceThres = 2*tolerance;
   float c;
   while( std::abs(fb-fa) > distanceThres )

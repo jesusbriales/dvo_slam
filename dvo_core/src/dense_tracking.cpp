@@ -36,7 +36,9 @@
 #include <dvo/util/histogram.h>
 //#include <dvo/visualization/visualizer.h>
 
+#include <dvo/core/information_selection.h>
 #include <boost/range/numeric.hpp> // For accumulate function
+
 namespace dvo
 {
 
@@ -303,35 +305,15 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         }
       }
 
+      ProbabilityProfile probProfile;
       // for a certain percentage of sampling
       // compute the parameters for the probability profile
-      // CURRENTLY: GMS method, lowThres = 0; upThres = max;
-      float sumOfUtilities = boost::accumulate(utilities,0);
-      float alpha = cfg.SamplingProportion * numValidPixels / sumOfUtilities;
-
-      // compute probability of pixel and sample
-      {
-        std::vector<float>::iterator util_it = utilities.begin();
-        PointWithIntensityAndDepth::VectorType::iterator selected_it = first_point;
-        double probability;
-        for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
-            point_it != last_point; ++point_it, ++util_it)
-        {
-          // compute probability from the profile
-          probability = alpha * *util_it;
-          // generate random sampling for given probability
-          float x = (float)std::rand()/(float)(RAND_MAX/1);
-          bool doSample = false;
-          if(probability > x) doSample = true;
-          if(doSample)
-          {
-            *selected_it = *point_it;
-            ++selected_it;
-          }
-        }
-
-        last_point = selected_it - 1;
-      }
+      probProfile.computeParameters( utilities, cfg.SamplingProportion );
+      
+      // compute probability of each pixel and sample
+      probProfile.samplePoints<
+          PointWithIntensityAndDepth::VectorType::iterator> (
+          utilities, first_point, last_point );
     } // end sampling block
 
     size_t numSelectedPixels = last_point - first_point;

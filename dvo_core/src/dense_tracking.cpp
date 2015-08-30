@@ -36,8 +36,7 @@
 #include <dvo/util/histogram.h>
 //#include <dvo/visualization/visualizer.h>
 
-#include <dvo/core/information_selection.h>
-#include <boost/range/numeric.hpp> // For accumulate function
+#include <dvo/selection/selector.h>
 
 namespace dvo
 {
@@ -305,15 +304,13 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         }
       }
 
-      ProbabilityProfile probProfile;
-      // for a certain percentage of sampling
-      // compute the parameters for the probability profile
-      probProfile.computeParameters( utilities, cfg.SamplingProportion );
-      
-      // compute probability of each pixel and sample
-      probProfile.samplePoints<
+      selection::Selector selector( utilities, cfg.SamplingProportion );
+
+      selector.map->solveParameters();
+
+      selector.selectPoints<
           PointWithIntensityAndDepth::VectorType::iterator> (
-          utilities, first_point, last_point );
+            first_point, last_point );
     } // end sampling block
 
     size_t numSelectedPixels = last_point - first_point;

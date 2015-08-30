@@ -60,11 +60,14 @@ rosbuild_add_library(${PROJECT_NAME}
     src/core/rgbd_image.cpp
     src/core/rgbd_image_sse.cpp
     src/core/point_selection.cpp
-    src/core/information_selection.cpp
     src/core/surface_pyramid.cpp
     src/core/weight_calculation.cpp
     
     src/util/histogram.cpp
+
+    src/selection/utility_map.cpp
+    src/selection/solvers.cpp
+    src/selection/selector.cpp
     
     src/visualization/camera_trajectory_visualizer.cpp
     

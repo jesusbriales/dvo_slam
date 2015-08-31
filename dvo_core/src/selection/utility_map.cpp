@@ -40,8 +40,9 @@ void UtilityMapPSPF::solveParameters()
   probMax_ = std::min( 1.0f, 10.0f * samplingRatio_ );
 
   // Solve slope to fulfill the sampling ratio constraint
-  float minValue = numOfSamples_ / boost::accumulate(utilities_,0);
-  float maxValue = 1e2; // Set a non-too-high value to reduce number of bisection steps
+  float alpha = numOfSamples_ / boost::accumulate(utilities_,0);
+  float minValue = 0.5 * alpha;
+  float maxValue = 2 * alpha; // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
   slope_ = bisect( UtilityMapPSPFFunctor(*this),
                         minValue, maxValue, toleranceNumOfSamples );

@@ -1,6 +1,7 @@
-#include <dvo/selection/utility_map.h>
+#include <dvo/selection/solvers.h>
 
 #include <cmath> // For std::abs
+#include <iostream>
 
 namespace dvo
 {
@@ -8,7 +9,7 @@ namespace selection
 {
 
 // Numerical solvers
-float bisect( const Functor& fun, float a, float b, float tolerance )
+float bisect( Functor& fun, float a, float b, float tolerance )
 {
   float fa,fb,fc;
   fa = fun(a); fb = fun(b);

@@ -32,25 +32,24 @@ protected:
   float numOfSamples_;
 };
 
-// Define generic functor
-struct Functor
-{
-  virtual float operator() ( float paramValue ) const = 0;
-};
-struct MapFunctor : Functor
-{
-public:
-  MapFunctor ( UtilityMap* mapPtr ) : mapPtr( mapPtr ) {}
-public:
-  UtilityMap* mapPtr;
-};
-
 class ProbabilityMap : public UtilityMap
 {
 public:
   ProbabilityMap( const UtilityVector& utilities, float samplingRatio ):
     UtilityMap(utilities,samplingRatio) {}
-  inline float expectedNumOfSamples() const;
+
+  inline float expectedNumOfSamples() const
+  {
+    using namespace boost::accumulators;
+
+    accumulator_set<float, stats<tag::sum> > acc;
+    for(UtilityVector::const_iterator util_it = utilities_.begin(); util_it!=utilities_.end(); ++util_it)
+    {
+      acc( this->operator ()(*util_it) );
+    }
+    return sum( acc );
+  }
+
   inline float samplingRatioConstraint()
   {
     return expectedNumOfSamples() - numOfSamples_;
@@ -74,32 +73,6 @@ public:
   }
 
 };
-
-struct UtilityMapPSPFFunctor
-{
-public:
-  UtilityMapPSPFFunctor (UtilityMapPSPF& map): map(map) {}
-  float operator() ( float paramValue )
-  {
-    map.slope(paramValue);
-    return map.samplingRatioConstraint();
-  }
-private:
-  UtilityMapPSPF map;
-};
-
-// Implementation of inline functions in header for visibility
-inline float ProbabilityMap::expectedNumOfSamples() const
-{
-  using namespace boost::accumulators;
-
-  accumulator_set<float, stats<tag::sum> > acc;
-  for(UtilityVector::const_iterator util_it = utilities_.begin(); util_it!=utilities_.end(); ++util_it)
-  {
-    acc( this->operator ()(*util_it) );
-  }
-  return sum( acc );
-}
 
 } /* namespace selection */
 } /* namespace dvo */

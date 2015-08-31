@@ -34,6 +34,8 @@ namespace dvo
 namespace util
 {
 
+using namespace boost::accumulators;
+
 struct stopwatch
 {
 private:
@@ -41,11 +43,16 @@ private:
   int64_t begin;
   int count;
   int interval;
-  boost::accumulators::accumulator_set<double, boost::accumulators::stats<boost::accumulators::tag::mean> > acc;
-
+  accumulator_set<double, stats<tag::mean> > acc;
 public:
-  stopwatch(std::string name, int interval = 500) : name(name + ": "), count(0), interval(interval)
+  stopwatch(std::string name, int interval = 500) : name(name), count(0), interval(interval)
   {
+  }
+
+  ~stopwatch()
+  {
+    // Print stopwatch value when the object is deleted
+    print();
   }
 
   inline void start()
@@ -64,21 +71,22 @@ public:
 
   inline void print()
   {
-    if(count == interval)
-    {
-      double m = boost::accumulators::mean(acc);
-      std::cerr  << name << m << std::endl;
-
-      // reset
-      acc = boost::accumulators::accumulator_set<double, boost::accumulators::stats<boost::accumulators::tag::mean> >();
-      count = 0;
-    }
+    double m = mean(acc);
+    std::cerr  << name << ": " << m << std::endl;
   }
+
 
   inline void stopAndPrint()
   {
     stop();
-    print();
+    if(count == interval)
+    {
+      print();
+
+      // reset
+      acc = accumulator_set<double, stats<tag::mean> >();
+      count = 0;
+    }
   }
 };
 

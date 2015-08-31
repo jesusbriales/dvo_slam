@@ -332,18 +332,18 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     compute_residuals_result.first_valid_flag = valid_residuals.begin();
 
 
-	sw_level[itctx_.Level].start();
     // solve the non-linear problem iteratively, by linear approximations
+    sw_level[itctx_.Level].start();
     do
     {
       level_stats.Iterations.push_back(IterationStats());
       IterationStats& iteration_stats = level_stats.Iterations.back();
       iteration_stats.Id = itctx_.Iteration;
 
-	  sw_it[itctx_.Level].start();
+      sw_it[itctx_.Level].start();
 
       double total_error = 0.0f;
-	  sw_error[itctx_.Level].start();
+      sw_error[itctx_.Level].start();
       Eigen::Affine3f transformf;
 
         inc = Sophus::SE3d::exp(x);
@@ -412,7 +412,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       }
 
       // now build equation system
-	  sw_linsys[itctx_.Level].start();
+      sw_linsys[itctx_.Level].start();
 
 #define PRECOMPUTED 1
 #if PRECOMPUTED
@@ -451,13 +451,13 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       b = ls.b.cast<double>() + cfg.Mu * initial().log();
       x = A.ldlt().solve(b);
 
-	  sw_linsys[itctx_.Level].stopAndPrint();
+      sw_linsys[itctx_.Level].stop();
 
       iteration_stats.EstimateIncrement = x;
       iteration_stats.EstimateInformation = A;
 
       itctx_.Iteration++;
-	  sw_it[itctx_.Level].stopAndPrint();
+      sw_it[itctx_.Level].stop();
     }
     while(accept && x.lpNorm<Eigen::Infinity>() > cfg.Precision && !itctx_.IterationsExceeded());
 
@@ -467,7 +467,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     if(itctx_.IterationsExceeded())
       level_stats.TerminationCriterion = TerminationCriteria::IterationsExceeded;
 
-	sw_level[itctx_.Level].stopAndPrint();
+    sw_level[itctx_.Level].stop();
   }
 
   LevelStats& last_level = result.Statistics.Levels.back();

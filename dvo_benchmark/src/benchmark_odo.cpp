@@ -463,7 +463,7 @@ void BenchmarkNode::run()
       {
         dense_tracker.match(*reference, *current, relative);
       }
-      sw_match.stopAndPrint();
+      sw_match.stop();
 
       trajectory = trajectory * relative;
 

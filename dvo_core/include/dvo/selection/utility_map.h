@@ -7,6 +7,8 @@
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/sum.hpp>
 
+#include <time.h> /* time, for srand */
+
 namespace dvo
 {
 namespace selection
@@ -36,7 +38,10 @@ class ProbabilityMap : public UtilityMap
 {
 public:
   ProbabilityMap( const UtilityVector& utilities, float samplingRatio ):
-    UtilityMap(utilities,samplingRatio) {}
+    UtilityMap(utilities,samplingRatio)
+  {
+    srand (time(NULL));
+  }
 
   inline float expectedNumOfSamples() const
   {

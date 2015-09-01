@@ -26,9 +26,9 @@ UtilityMap::UtilityMap(const UtilityVector& utilities, float samplingRatio ) :
 // then a ramp and then an upper threshold
 float UtilityMapPSPF::operator ()( Utility point_utility ) const
 {
-  if( point_utility > lowerThres_ )
+  if( point_utility > lowerThres )
   {
-    return std::min( probMax_, slope_ * (point_utility - lowerThres_) );
+    return std::min( probMax, slope * (point_utility - lowerThres) );
   }
   else
     return 0;
@@ -41,7 +41,8 @@ public:
   PSPFFunctor ( UtilityMapPSPF& map ) : map( map ) {}
   float operator() ( float paramValue )
   {
-    map.slope(paramValue);
+//    map.slope(paramValue);
+    map.slope = map.probMax / paramValue;
     return map.samplingRatioConstraint();
   }
 private:
@@ -51,23 +52,25 @@ private:
 void UtilityMapPSPF::solveParameters()
 {
   // Set lower threshold (user value for now)
-  lowerThres_ = 0;
+  lowerThres = 0;
 
   // Set maximum selection probability
   // Set heuristically, see Oreshkin's paper
-  probMax_ = std::min( 1.0f, 10.0f * samplingRatio_ );
+  probMax = std::min( 1.0f, 10.0f * samplingRatio_ );
 
   // Solve slope to fulfill the sampling ratio constraint
+  // Parameterize slope with horizontal interval of the ramp (for fixed height)
+  // which adjusts better to the non-linearity of the problem
   float alpha = numOfSamples_ / boost::accumulate(utilities_,0);
-  float minValue = 0.10f * alpha;
-  float maxValue = 10.0f * alpha; // Set a non-too-high value to reduce number of bisection steps
+  float minValue = 0;
+  float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
   PSPFFunctor fun( *this );
   // Check if alpha is close enough:
-  if( std::abs(fun(alpha)) < toleranceNumOfSamples )
-    slope_ = alpha;
+  if( std::abs(fun(probMax / alpha)) < toleranceNumOfSamples )
+    slope = alpha;
   else
-    slope_ = bisect( fun, minValue, maxValue, toleranceNumOfSamples );
+    slope = probMax / bisect( fun, minValue, maxValue, toleranceNumOfSamples );
 }
 
 } /* namespace selection */

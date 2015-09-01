@@ -64,14 +64,8 @@ public:
   virtual float operator() ( Utility ) const;
   virtual void solveParameters();
 
-protected:
-  float lowerThres_, slope_, probMax_; // Map parameters
 public:
-  inline void slope( float in )
-  {
-    slope_ = in;
-  }
-
+  float lowerThres, slope, probMax; // Map parameters
 };
 
 } /* namespace selection */

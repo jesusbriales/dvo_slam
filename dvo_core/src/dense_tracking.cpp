@@ -303,7 +303,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         }
       }
 
-      selection::Selector selector( utilities, cfg.SamplingProportion );
+      selection::SelectorNonDirect selector( utilities, cfg.SamplingProportion );
+//      selection::Selector selector( utilities, cfg.SamplingProportion );
 
       selector.map->solveParameters();
 

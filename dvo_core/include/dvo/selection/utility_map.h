@@ -28,7 +28,7 @@ public:
   virtual float operator() ( Utility ) const = 0; // Function to apply by the functor
   virtual void solveParameters() {} // Method that sets parameters in the map
 
-protected:
+public:
   UtilityVector utilities_;
   float samplingRatio_;
   float numOfSamples_;
@@ -40,7 +40,9 @@ public:
   ProbabilityMap( const UtilityVector& utilities, float samplingRatio ):
     UtilityMap(utilities,samplingRatio)
   {
-    srand (time(NULL));
+    // set the rand seed depending on the current time
+    // this is necessary for the experiments to evaluate trends
+    srand( time(NULL) );
   }
 
   inline float expectedNumOfSamples() const

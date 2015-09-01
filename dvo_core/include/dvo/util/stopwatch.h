@@ -52,6 +52,7 @@ public:
   ~stopwatch()
   {
     // Print stopwatch value when the object is deleted
+    // (this is at the end of the program if the object is declared static)
     print();
   }
 

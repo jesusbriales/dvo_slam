@@ -229,6 +229,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     reference.select(itctx_.Level, first_point, last_point);
     cur.buildAccelerationStructure();
 
+    sw_presel[itctx_.Level].stop();
+
     level_stats.Id = itctx_.Level;
     level_stats.MaxValidPixels = reference.getMaximumNumberOfPoints(itctx_.Level);
     size_t numValidPixels = last_point - first_point;
@@ -255,9 +257,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     // Elems:     i             z              idx                      idy                         zdx               zdy
     wcur <<  1.0f / 255.0f,    1.0f,  wcur_id * K.fx() / 255.0f, wcur_id * K.fy() / 255.0f,   wcur_zd * K.fx(), wcur_zd * K.fy(),   0.0f, 0.0f;
     wref << -1.0f / 255.0f,   -1.0f,  wref_id * K.fx() / 255.0f, wref_id * K.fy() / 255.0f,   wref_zd * K.fx(), wref_zd * K.fy(),   0.0f, 0.0f;
-
-
-    sw_presel[itctx_.Level].stop();
 
     // compute jacobian at selected points
     // precompute jacobian using this image
@@ -396,7 +395,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         itctx_.LastError = itctx_.Error;
         itctx_.Error = total_error;
 
-	  sw_error[itctx_.Level].stopAndPrint();
+      sw_error[itctx_.Level].stop();
 
       // accept the last increment?
       accept = itctx_.Error < itctx_.LastError;

@@ -429,7 +429,6 @@ void BenchmarkNode::run()
   int frameCounter = 0;
   for(std::vector<dvo_benchmark::RgbdPair>::iterator it = pairs.begin(); ros::ok() && it != pairs.end(); ++it, ++frameCounter)
   {
-	ROS_WARN_STREAM("Frame number: " << frameCounter << " of " << pairs.size() );
 	reference = current;
     current = load(camera, folder + it->RgbFile(), folder + it->DepthFile());
 

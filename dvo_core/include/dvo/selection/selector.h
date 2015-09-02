@@ -21,6 +21,9 @@ public:
   UtilityVector utilities;
   UtilityMap* map;
   Sampler* sampler;
+
+  float samplingRatio;
+  float numOfSamples;
 };
 
 template <typename iterator_type>
@@ -57,6 +60,9 @@ public:
   UtilityVector utilities;
   UtilityMap* map;
   SamplerWithStorage* sampler;
+
+  float samplingRatio;
+  float numOfSamples;
 };
 
 template <typename iterator_type>
@@ -64,7 +70,7 @@ void SelectorNonDirect::selectPoints(
     iterator_type& first_point, iterator_type& last_point )
 {
   // Make preliminary step necessary for the *global* sampler
-  sampler->setup( *map, utilities );
+  sampler->setup( *map, utilities, numOfSamples );
 
   // Make point-wise sampling
   ProbabilityIterator t_it = sampler->temporaries.begin();

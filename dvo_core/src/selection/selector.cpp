@@ -6,15 +6,21 @@ namespace selection
 {
 
 Selector::Selector( UtilityVector& utilities, float samplingRatio ) :
-  utilities(utilities)
+  utilities(utilities),
+  samplingRatio(samplingRatio)
 {
-  map = new UtilityMapPSPF( utilities, samplingRatio );
+  numOfSamples = samplingRatio * (float)utilities.size();
+
+  map = new UtilityMapPSPF( utilities, numOfSamples );
   sampler = new BernoulliSampler();
 }
 
 SelectorNonDirect::SelectorNonDirect( UtilityVector& utilities, float samplingRatio ) :
-  utilities(utilities)
+  utilities(utilities),
+  samplingRatio(samplingRatio)
 {
+  numOfSamples = samplingRatio * (float)utilities.size();
+
   map = new UtilityMapPSPF( utilities, samplingRatio );
   sampler = new WrsExponentialQuickselectSampler();
 }

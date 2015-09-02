@@ -8,7 +8,7 @@ namespace dvo
 namespace selection
 {
 
-void WrsExponentialQuickselectSampler::setup(const UtilityMap &map, const UtilityVector &utilities)
+void WrsExponentialQuickselectSampler::setup(const UtilityMap &map, const UtilityVector &utilities, float numOfSamples)
 {
   // Compute exponential samples from mapped utilities and store them as temporary values
   temporaries.resize(utilities.size());
@@ -19,7 +19,7 @@ void WrsExponentialQuickselectSampler::setup(const UtilityMap &map, const Utilit
   {
     // Explanation here:
     // https://en.wikipedia.org/wiki/Exponential_distribution#Generating_exponential_variates
-    *t_it = -std::log( (float)std::rand() * divMaxInt ) / (*util_it) ;
+    *t_it = -std::log( (float)std::rand() * divMaxInt ) / map(*util_it) ;
   }
 
   // Compute the threshold to obtain the desired number of samples
@@ -29,8 +29,24 @@ void WrsExponentialQuickselectSampler::setup(const UtilityMap &map, const Utilit
   ProbabilityVector temporariesOrdered;
   temporariesOrdered.resize( temporaries.size() );
   std::copy( temporaries.begin(), temporaries.end(), temporariesOrdered.begin() );
-  ProbabilityIterator t_nth = temporariesOrdered.begin() + std::floor(map.numOfSamples_);
+  ProbabilityIterator t_nth = temporariesOrdered.begin() + std::floor(numOfSamples);
   std::nth_element( temporariesOrdered.begin(), t_nth, temporariesOrdered.end() );
+  threshold_ = *t_nth;
+}
+
+void DeterministicSampler::setup(const UtilityVector &utilities, float numOfSamples)
+{
+  // Compute the threshold to obtain the desired number of samples
+  // For that, partially sort the vector around the n_th element
+  // and finally read the new value for the n_th element
+  // Copy the vector of temporaries to a copy vector, to keep original one ordered
+  ProbabilityVector utilitiesOrdered;
+  utilitiesOrdered.resize( utilities.size() );
+  std::copy( utilities.begin(), utilities.end(), utilitiesOrdered.begin() );
+  // Notice the nth point is taken from the end of the vector
+  // so that the threshold is BELOW the highest utilities (a matter of sign)
+  ProbabilityIterator t_nth = utilitiesOrdered.end() - std::floor(numOfSamples);
+  std::nth_element( utilitiesOrdered.begin(), t_nth, utilitiesOrdered.end() );
   threshold_ = *t_nth;
 }
 

@@ -27,8 +27,10 @@ class SamplerWithStorage : public Sampler
 {
 public:
   // Make necessary steps to compute temporary values
-  virtual void setup( const UtilityMap& map, const UtilityVector& utilities ) = 0;
+  virtual void setup( const UtilityMap& map, const UtilityVector& utilities, float numOfSamples ) = 0;
+public:
   ProbabilityVector temporaries;
+  size_t numOfSamples;
 };
 
 // BernoulliSampler
@@ -50,11 +52,26 @@ public:
 class WrsExponentialQuickselectSampler : public SamplerWithStorage
 {
 public:
-  virtual void setup( const UtilityMap& map, const UtilityVector& utilities );
+  virtual void setup( const UtilityMap& map, const UtilityVector& utilities, float numOfSamples );
 
   virtual inline bool operator() (float temporary) const
   {
     return temporary < threshold_;
+  }
+protected:
+  float threshold_;
+};
+
+// Deterministic sampler
+// which takes points with highest (+) utility
+class DeterministicSampler : public SamplerWithoutStorage
+{
+public:
+  virtual void setup( const UtilityVector& utilities, float numOfSamples );
+
+  virtual inline bool operator() (float utility) const
+  {
+    return utility > threshold_;
   }
 protected:
   float threshold_;

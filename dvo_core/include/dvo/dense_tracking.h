@@ -33,6 +33,8 @@
 #include <dvo/core/least_squares.h>
 #include <dvo/core/weight_calculation.h>
 
+#include <dvo/selection/selector.h>
+
 namespace dvo
 {
 
@@ -48,7 +50,6 @@ public:
 
     bool UseInitialEstimate;
     bool UseWeighting;
-    float SamplingProportion;
 
     bool UseParallel;
 
@@ -60,6 +61,10 @@ public:
 
     float IntensityDerivativeThreshold;
     float DepthDerivativeThreshold;
+
+	float SamplingProportion;
+	dvo::selection::UtilityMaps::enum_t UtilityMapType;
+	dvo::selection::Samplers::enum_t SamplerType;
 
     Config();
     size_t getNumLevels() const;
@@ -206,8 +211,9 @@ private:
 
   // Tracker operators for different sub-tasks
   dvo::core::WeightCalculation weight_calculation_;
-  dvo::core::PointSelection reference_selection_;
   dvo::core::ValidPointAndGradientThresholdPredicate selection_predicate_;
+  dvo::core::PointSelection reference_selection_;
+  dvo::selection::Selector information_selection_;
 
   // Vectors for the values corresponding to each point finally put in the linear system
   // These are unallocated, so they must be resized before use
@@ -230,13 +236,15 @@ std::ostream& operator<< (std::basic_ostream<CharT, Traits> &out, const dvo::Den
   << ", Mu = " << config.Mu
   << ", Use Initial Estimate = " << (config.UseInitialEstimate ? "true" : "false")
   << ", Use Weighting = " << (config.UseWeighting ? "true" : "false")
-  << ", Sampling Proportion = " << config.SamplingProportion
   << ", Scale Estimator = " << dvo::core::ScaleEstimators::str(config.ScaleEstimatorType)
   << ", Scale Estimator Param = " << config.ScaleEstimatorParam
   << ", Influence Function = " << dvo::core::InfluenceFunctions::str(config.InfluenceFuntionType)
   << ", Influence Function Param = " << config.InfluenceFunctionParam
   << ", Intensity Derivative Threshold = " << config.IntensityDerivativeThreshold
   << ", Depth Derivative Threshold = " << config.DepthDerivativeThreshold
+  << ", Sampling Proportion = " << config.SamplingProportion
+  << ", Utility Map = " << dvo::selection::UtilityMaps::str(config.UtilityMapType)
+  << ", Sampler = " << dvo::selection::Samplers::str(config.SamplerType)
   ;
 
   return out;

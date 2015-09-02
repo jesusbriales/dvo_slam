@@ -57,7 +57,8 @@ DenseTracker::DenseTracker(const Config& config) :
     itctx_(cfg),
     weight_calculation_(),
     selection_predicate_(),
-    reference_selection_(selection_predicate_)
+    reference_selection_(selection_predicate_),
+    information_selection_()
 {
   configure(config);
 }
@@ -66,7 +67,8 @@ DenseTracker::DenseTracker(const DenseTracker& other) :
   itctx_(cfg),
   weight_calculation_(),
   selection_predicate_(),
-  reference_selection_(selection_predicate_)
+  reference_selection_(selection_predicate_),
+  information_selection_()
 {
   configure(other.configuration());
 }
@@ -95,6 +97,13 @@ void DenseTracker::configure(const Config& config)
     weight_calculation_
       .scaleEstimator(ScaleEstimators::get(ScaleEstimators::Unit))
       .influenceFunction(InfluenceFunctions::get(InfluenceFunctions::Unit));
+  }
+
+  if(cfg.SamplingProportion < 0.99999f)
+  {
+    information_selection_.samplingRatio = cfg.SamplingProportion;
+    information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType);
+    information_selection_.sampler = selection::Samplers::get(cfg.SamplerType);
   }
 }
 
@@ -302,13 +311,14 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
           *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
         }
       }
+      // Sample points to use in the odometry
+      // according to their computed utilities
+      information_selection_.map->setup( utilities, cfg.SamplingProportion );
 
-      selection::SelectorNonDirect selector( utilities, cfg.SamplingProportion );
-//      selection::Selector selector( utilities, cfg.SamplingProportion );
+      information_selection_.sampler->setup(
+            *information_selection_.map, utilities, cfg.SamplingProportion);
 
-      selector.map->solveParameters();
-
-      selector.selectPoints<
+      information_selection_.selectPoints<
           PointWithIntensityAndDepth::VectorType::iterator> (
             first_point, last_point );
     } // end sampling block

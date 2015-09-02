@@ -17,6 +17,8 @@
 
   <!-- temporary arguments: assignment to parameters -->
   <arg name="sampling_proportion" default="1.0" />
+  <arg name="utility_map" default="2" /> <!-- Id, Ramp, Step -->
+  <arg name="sampler" default="1" /> <!-- ProbExpected, ProbExact, Deterministic -->
   
   <arg name="launch_prefix" value="xterm -e gdb --args" if="$(arg debug)" />
   <arg name="launch_prefix" value="" unless="$(arg debug)" />

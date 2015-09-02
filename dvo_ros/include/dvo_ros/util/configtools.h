@@ -32,7 +32,6 @@ namespace util
 void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig& config, dvo::DenseTracker::Config& tracker_cfg)
 {
   dvo::core::ScaleEstimators::enum_t scale_estimator;
-
   switch(config.scale_estimator)
   {
     case dvo_ros::CameraDenseTracker_NormalDistributionScaleEstimator:
@@ -50,7 +49,6 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
   }
 
   dvo::core::InfluenceFunctions::enum_t influence_function;
-
   switch(config.influence_function)
   {
     case dvo_ros::CameraDenseTracker_TukeyInfluenceFunction:
@@ -67,13 +65,46 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
       break;
   }
 
+  dvo::selection::UtilityMaps::enum_t utility_map;
+  switch(config.utility_map)
+  {
+	case dvo_ros::CameraDenseTracker_IdUtilityMap:
+	  utility_map = dvo::selection::UtilityMaps::Id;
+	  break;
+	case dvo_ros::CameraDenseTracker_RampUtilityMap:
+	  utility_map = dvo::selection::UtilityMaps::Ramp;
+	  break;
+	case dvo_ros::CameraDenseTracker_StepUtilityMap:
+	  utility_map = dvo::selection::UtilityMaps::Step;
+	  break;
+	default:
+	  assert(false && "unknown utility map");
+	  break;
+  }
+
+  dvo::selection::Samplers::enum_t sampler;
+  switch(config.sampler)
+  {
+	case dvo_ros::CameraDenseTracker_ProbExpectedSampler:
+	  sampler = dvo::selection::Samplers::ProbExpected;
+	  break;
+	case dvo_ros::CameraDenseTracker_ProbExactSampler:
+	  sampler = dvo::selection::Samplers::ProbExact;
+	  break;
+	case dvo_ros::CameraDenseTracker_DeterministicSampler:
+	  sampler = dvo::selection::Samplers::Deterministic;
+	  break;
+	default:
+	  assert(false && "unknown sampler");
+	  break;
+  }
+
   tracker_cfg.FirstLevel = config.coarsest_level;
   tracker_cfg.LastLevel = config.finest_level;
   tracker_cfg.MaxIterationsPerLevel = config.max_iterations;
   tracker_cfg.Precision = config.precision;
   tracker_cfg.UseInitialEstimate = config.use_initial_estimate;
   tracker_cfg.UseWeighting = config.use_weighting;
-  tracker_cfg.SamplingProportion = config.sampling_proportion;
   tracker_cfg.ScaleEstimatorType = scale_estimator;
   tracker_cfg.ScaleEstimatorParam = config.scale_estimator_param;
   tracker_cfg.InfluenceFuntionType = influence_function;
@@ -81,6 +112,9 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
   tracker_cfg.Mu = config.mu;
   tracker_cfg.IntensityDerivativeThreshold = config.min_intensity_deriv;
   tracker_cfg.DepthDerivativeThreshold = config.min_depth_deriv;
+  tracker_cfg.SamplingProportion = config.sampling_proportion;
+  tracker_cfg.UtilityMapType = utility_map;
+  tracker_cfg.SamplerType = sampler;
 }
 
 } /* namespace util */

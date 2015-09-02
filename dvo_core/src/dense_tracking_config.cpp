@@ -32,13 +32,15 @@ DenseTracker::Config::Config() :
   Mu(0),
   UseInitialEstimate(false),
   UseWeighting(true),
-  SamplingProportion(1.0f),
   InfluenceFuntionType(dvo::core::InfluenceFunctions::TDistribution),
   InfluenceFunctionParam(dvo::core::TDistributionInfluenceFunction::DEFAULT_DOF),
   ScaleEstimatorType(dvo::core::ScaleEstimators::TDistribution),
   ScaleEstimatorParam(dvo::core::TDistributionScaleEstimator::DEFAULT_DOF),
   IntensityDerivativeThreshold(0.0f),
-  DepthDerivativeThreshold(0.0f)
+  DepthDerivativeThreshold(0.0f),
+  SamplingProportion(1.0f),
+  UtilityMapType(dvo::selection::UtilityMaps::Ramp),
+  SamplerType(dvo::selection::Samplers::ProbExpected)
 {
 }
 

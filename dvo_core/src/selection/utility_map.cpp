@@ -14,17 +14,9 @@ namespace dvo
 namespace selection
 {
 
-// Constructor for the base class UtilityMap
-UtilityMap::UtilityMap(const UtilityVector& utilities, float samplingRatio ) :
-  utilities_(utilities),
-  samplingRatio_(samplingRatio)
-{
-  numOfSamples_ = samplingRatio * (float)utilities.size();
-}
-
 // Operator for the PSFP map, a piecewise function with a lower threshold,
 // then a ramp and then an upper threshold
-float UtilityMapPSPF::operator ()( Utility point_utility ) const
+float ProbRampMap::operator ()( Utility point_utility ) const
 {
   if( point_utility > lowerThres )
   {
@@ -34,43 +26,82 @@ float UtilityMapPSPF::operator ()( Utility point_utility ) const
     return 0;
 }
 
-// Functor for solveParameters in UtilityMapPSPF
-struct PSPFFunctor : public Functor
+// Functor for setup() in ProbRampMap
+struct ProbRampFunctor : public Functor
 {
 public:
-  PSPFFunctor ( UtilityMapPSPF& map ) : map( map ) {}
+  ProbRampFunctor ( ProbRampMap& map, const UtilityVector& utilities ) :
+    map( map ), utilities( utilities ) {}
   float operator() ( float paramValue )
   {
-//    map.slope(paramValue);
     map.slope = map.probMax / paramValue;
-    return map.samplingRatioConstraint();
+    return map.samplingRatioConstraint( utilities );
   }
 private:
-  UtilityMapPSPF map;
+  ProbRampMap map;
+  UtilityVector utilities;
 };
 
-void UtilityMapPSPF::solveParameters()
+void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
 {
+  samplingRatio = ratio;
+
   // Set lower threshold (user value for now)
   lowerThres = 0;
 
   // Set maximum selection probability
   // Set heuristically, see Oreshkin's paper
-  probMax = std::min( 1.0f, 10.0f * samplingRatio_ );
+  probMax = std::min( 1.0f, 10.0f * samplingRatio );
 
   // Solve slope to fulfill the sampling ratio constraint
   // Parameterize slope with horizontal interval of the ramp (for fixed height)
   // which adjusts better to the non-linearity of the problem
-  float alpha = numOfSamples_ / boost::accumulate(utilities_,0);
+  float numOfSamples = samplingRatio * utilities.size();
+  float alpha = numOfSamples / boost::accumulate(utilities,0);
   float minValue = 0;
   float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
-  PSPFFunctor fun( *this );
+  ProbRampFunctor fun( *this, utilities );
   // Check if alpha is close enough:
   if( std::abs(fun(probMax / alpha)) < toleranceNumOfSamples )
     slope = alpha;
   else
     slope = probMax / bisect( fun, minValue, maxValue, toleranceNumOfSamples );
+}
+
+const char* UtilityMaps::str(enum_t type)
+{
+  switch(type)
+  {
+    case UtilityMaps::Id:
+      return "Id";
+    case UtilityMaps::Ramp:
+      return "Probabilistic ramp";
+    default:
+      break;
+  }
+  assert(false && "Unknown utility map type!");
+
+  return "";
+}
+
+UtilityMap* UtilityMaps::get(UtilityMaps::enum_t type)
+{
+  static IdMap id;
+  static ProbRampMap probRamp;
+
+  switch(type)
+  {
+    case UtilityMaps::Id:
+      return (UtilityMap*)&id;
+    case UtilityMaps::Ramp:
+      return (UtilityMap*)&probRamp;
+    default:
+      break;
+  }
+  assert(false && "Unknown utility map type!");
+
+  return 0;
 }
 
 } /* namespace selection */

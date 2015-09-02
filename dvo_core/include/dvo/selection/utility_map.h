@@ -24,55 +24,74 @@ typedef UtilityVector::iterator UtilityIterator;
 class UtilityMap
 {
 public:
-  UtilityMap( const UtilityVector&, float samplingRatio );
-  virtual float operator() ( Utility ) const = 0; // Function to apply by the functor
-  virtual void solveParameters() {} // Method that sets parameters in the map
+  // Function associated to the map profile
+  virtual float operator() ( Utility ) const = 0;
 
-public:
-  UtilityVector utilities_;
-  float samplingRatio_;
-  float numOfSamples_;
+  // Method that sets parameters in the map, if any
+  virtual void setup(const UtilityVector&, float ratio) = 0;
+};
+
+class IdMap : public UtilityMap
+{
+  inline float operator() ( Utility input ) const
+  {
+	return input;
+  }
+  inline void setup(const UtilityVector&, float) { }
 };
 
 class ProbabilityMap : public UtilityMap
 {
 public:
-  ProbabilityMap( const UtilityVector& utilities, float samplingRatio ):
-    UtilityMap(utilities,samplingRatio)
+  ProbabilityMap( )
   {
     // set the rand seed depending on the current time
     // this is necessary for the experiments to evaluate trends
     srand( time(NULL) );
   }
 
-  inline float expectedNumOfSamples() const
+  inline float expectedNumOfSamples( const UtilityVector& utilities ) const
   {
     using namespace boost::accumulators;
 
     accumulator_set<float, stats<tag::sum> > acc;
-    for(UtilityVector::const_iterator util_it = utilities_.begin(); util_it!=utilities_.end(); ++util_it)
+	for(UtilityVector::const_iterator util_it = utilities.begin(); util_it!=utilities.end(); ++util_it)
     {
       acc( this->operator ()(*util_it) );
     }
     return sum( acc );
   }
 
-  inline float samplingRatioConstraint()
+  inline float samplingRatioConstraint( const UtilityVector& utilities )
   {
-    return expectedNumOfSamples() - numOfSamples_;
+	return expectedNumOfSamples( utilities ) - samplingRatio * utilities.size();
   }
+
+public:
+  float samplingRatio;
 };
 
-class UtilityMapPSPF : public ProbabilityMap
+class ProbRampMap : public ProbabilityMap
 {
 public:
-  UtilityMapPSPF( const UtilityVector& utilities, float samplingRatio ):
-    ProbabilityMap(utilities,samplingRatio) {}
   virtual float operator() ( Utility ) const;
-  virtual void solveParameters();
+  void setup(const UtilityVector&, float ratio);
 
 public:
   float lowerThres, slope, probMax; // Map parameters
+};
+
+struct UtilityMaps {
+  typedef enum {
+	Id,
+	Ramp,
+	Step
+	// don't forget to add to dynamic reconfigure!
+  } enum_t;
+
+  static const char* str(enum_t type);
+
+  static UtilityMap* get(enum_t type);
 };
 
 } /* namespace selection */

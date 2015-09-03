@@ -8,6 +8,72 @@
 namespace H5
 {
 
+//template <class T>
+//class H5CompType : public CompType
+//{
+//  H5CompType() : CompType( sizeof(T) )
+//  {
+//    this->setup( T() );
+//  }
+
+//  // Set all the class-specific structure of member variables
+//  void setup ( const T& );
+//};
+
+//template<class T>
+//void H5CompType<T>::setup(const T &)
+//{
+//  // Do sth here, specialize?
+//}
+
+#define ADD_MEMBER(name,type) \
+  this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
+
+template <class T>
+class BaseCompType : public CompType
+{
+public:
+  BaseCompType() :
+    // Set base object CompType to the desired object type
+    CompType( sizeof(T) )
+  {
+//    setup();
+  }
+
+//  virtual void setup ( ) = 0; // Makes this class abstract
+//  virtual void setup ( ) { } // Makes this class abstract
+};
+
+#define THIS_TYPE dvo::DenseTracker::LevelStats
+class CompTypeLevelStats :
+    public BaseCompType<THIS_TYPE>
+{
+public:
+  // Default constructor is called, by default!
+//  CompTypeLevelStats() : H5CompType( ) {}
+  CompTypeLevelStats()
+  {
+    ADD_MEMBER(MaxValidPixels,PredType::NATIVE_INT);
+    ADD_MEMBER(ValidPixels,PredType::NATIVE_INT);
+    ADD_MEMBER(SelectedPixels,PredType::NATIVE_INT);
+  }
+};
+#undef THIS_TYPE
+
+//class CompTypeLevelStats :
+//    public H5CompType<dvo::DenseTracker::LevelStats>
+//{
+//public:
+//  CompTypeLevelStats() : H5CompType( )
+//  {
+//    this->insertMember(
+//          "MaxValidPixels",
+//          offsetof(dvo::DenseTracker::LevelStats, MaxValidPixels), PredType::NATIVE_UINT );
+//    this->insertMember( "ValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, ValidPixels), PredType::NATIVE_UINT );
+//    this->insertMember( "SelectedPixels", HOFFSET(dvo::DenseTracker::LevelStats, SelectedPixels), PredType::NATIVE_UINT );
+//  }
+//};
+
 class H5LevelStats : public CompType
 {
 public:
@@ -43,7 +109,7 @@ public:
     H5::DataSpace mspace(1,dataDim);
 
     // Write local data to the dataset in the h5 file
-    this->write(levelsPtr, H5LevelStats(), mspace, fspace );
+    this->write(levelsPtr, CompTypeLevelStats(), mspace, fspace );
   }
 
 private:
@@ -61,7 +127,8 @@ public:
     hsize_t fdims[2] = {3, 500}; // TODO: Read size
     DataSpace fspace( 2, fdims );
 
-    dset = DataSetStream( group.createDataSet("dset", H5LevelStats(), fspace ) );
+//    dset = DataSetStream( group.createDataSet("dset", H5LevelStats(), fspace ) );
+    dset = DataSetStream( group.createDataSet("dset", CompTypeLevelStats(), fspace ) );
   }
 //	~H5FileBenchmark();
 

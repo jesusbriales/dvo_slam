@@ -443,17 +443,19 @@ void BenchmarkNode::run()
 
   dvo::core::RgbdImagePyramid::Ptr reference, current;
 
-  // Create HDF5 benchmark file
-  H5::H5FileBenchmark benchH5File( "benchmark.h5", H5F_ACC_TRUNC );
-
   // Create HDF5 file for the experiment
   H5::H5File  file( "ex_cpp.h5", H5F_ACC_TRUNC );
   H5::Group   group( file.createGroup( "this_experiment") );
   hsize_t     dims[2]={3, pairs.size()};
   H5::DataSpace fspace( 2, dims );
 
+  // Create HDF5 benchmark file (obsolete...?)
+  H5::H5FileBenchmark benchH5File( "benchmark.h5", H5F_ACC_TRUNC );
+
+
+
 //  H5::FloatType datatype( H5::PredType::NATIVE_FLOAT );
-  // Create compound type with atomic types
+  // Create compound type for LevelStats
   H5::CompType hLevelStats( sizeof(dvo::DenseTracker::LevelStats) );
   hLevelStats.insertMember( "MaxValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, MaxValidPixels), H5::PredType::NATIVE_UINT );
   hLevelStats.insertMember( "ValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, ValidPixels), H5::PredType::NATIVE_UINT );
@@ -463,8 +465,20 @@ void BenchmarkNode::run()
 //        htype_b.insertMember( "d", HOFFSET(type_b, d), H5::PredType::NATIVE_DOUBLE );
 //        htype_b.insertMember( "s", HOFFSET(type_b, s), htype_a );
 
+  // Create compound type for IterationStats
+  H5::CompType hIterationStats( sizeof(dvo::DenseTracker::IterationStats) );
+  hIterationStats.insertMember( "TDistributionLogLikelihood", HOFFSET(dvo::DenseTracker::IterationStats, TDistributionLogLikelihood), H5::PredType::NATIVE_DOUBLE );
+  hIterationStats.insertMember( "PriorLogLikelihood", HOFFSET(dvo::DenseTracker::IterationStats, PriorLogLikelihood), H5::PredType::NATIVE_DOUBLE );
+
+  // Create variable length array for iteration statistics
+//  H5::VarLenType hIterationStatsVec( &H5::PredType::NATIVE_UINT );
+  H5::VarLenType hIterationStatsVec( &hIterationStats );
+  // Add this type to the LevelStats too
+//  hLevelStats.insertMember( "Iterations", HOFFSET(dvo::DenseTracker::LevelStats,Iterations), hIterationStatsVec );
+
 //  H5::DataSet dataset = group.createDataSet( "dset", datatype, fspace );
   H5::DataSet dataset = group.createDataSet( "dset", hLevelStats, fspace );
+  H5::DataSet datasetItStat = group.createDataSet( "dsetItStat", hIterationStatsVec, fspace );
   hsize_t colCounter = 0;
 
   // Test storage
@@ -594,6 +608,10 @@ void BenchmarkNode::run()
         H5::DataSpace mspace(1,dataDim);
         // Write local data to the dataset in the h5 file
         dataset.write(result.Statistics.Levels.data(), hLevelStats, mspace, fspace );
+
+        /* Save iteration statistics as a dataset of variable length objects */
+        // Not got yet
+//        datasetItStat.write(result.Statistics.Levels[0].Iterations, hIterationStatsVec, mspace, fspace );
       }
 
       if(cfg_.EstimateTrajectory)

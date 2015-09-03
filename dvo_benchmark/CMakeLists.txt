@@ -41,9 +41,14 @@ find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 link_directories(${VTK_LIBRARY_DIRS})
 
+# HDF5 library
+find_package(HDF5)
+include_directories(${HDF5_INCLUDE_DIR})
+
 rosbuild_add_executable(benchmark
 #     src/benchmark_slam.cpp
-     src/benchmark_odo.cpp
+    src/benchmark_odo.cpp
+    src/h5filebenchmark.cpp
 )
 
 #rosbuild_add_executable(experiment
@@ -52,6 +57,8 @@ rosbuild_add_executable(benchmark
 
 target_link_libraries(benchmark
   vtkCommon
+  ${HDF5_LIBRARIES}
+  hdf5_cpp          # For HDF5 C++ API
 )
 
 # create output directory - just convenience for our users

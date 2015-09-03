@@ -43,6 +43,11 @@
 #include <dvo_benchmark/groundtruth.h>
 #include <dvo_benchmark/tools.h>
 
+//#include <hdf5.h>
+//#include <hdf5_hl.h>
+#include <H5Cpp.h>
+#include <dvo_benchmark/h5filebenchmark.h>
+
 dvo::core::RgbdImagePyramidPtr load(dvo::core::RgbdCameraPyramid& camera, std::string rgb_file, std::string depth_file)
 {
   cv::Mat rgb, grey, grey_s16, depth, depth_inpainted, depth_mask, depth_mono, depth_float;
@@ -349,6 +354,20 @@ void BenchmarkNode::createReferenceCamera(dvo::visualization::CameraTrajectoryVi
       show();
 }
 
+// Temporary struct to test HDF5
+struct type_a
+{
+  type_a(): a(15.3f), b(2), c('a') {}
+  void doSth( void ) { std::cout << "Hello!" << std::endl; }
+  float a;
+  int b;
+  char c;
+} ;
+typedef struct {
+  double d;
+  type_a s;
+} type_b;
+
 void BenchmarkNode::run()
 {
   // setup visualizer
@@ -424,12 +443,92 @@ void BenchmarkNode::run()
 
   dvo::core::RgbdImagePyramid::Ptr reference, current;
 
+  // Create HDF5 benchmark file
+  H5::H5FileBenchmark benchH5File( "benchmark.h5", H5F_ACC_TRUNC );
+
+  // Create HDF5 file for the experiment
+  H5::H5File  file( "ex_cpp.h5", H5F_ACC_TRUNC );
+  H5::Group   group( file.createGroup( "this_experiment") );
+  hsize_t     dims[2]={3, pairs.size()};
+  H5::DataSpace fspace( 2, dims );
+
+//  H5::FloatType datatype( H5::PredType::NATIVE_FLOAT );
+  // Create compound type with atomic types
+  H5::CompType hLevelStats( sizeof(dvo::DenseTracker::LevelStats) );
+  hLevelStats.insertMember( "MaxValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, MaxValidPixels), H5::PredType::NATIVE_UINT );
+  hLevelStats.insertMember( "ValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, ValidPixels), H5::PredType::NATIVE_UINT );
+  hLevelStats.insertMember( "SelectedPixels", HOFFSET(dvo::DenseTracker::LevelStats, SelectedPixels), H5::PredType::NATIVE_UINT );
+  // Create nested compound type
+//        H5::CompType htype_b( sizeof(type_b) );
+//        htype_b.insertMember( "d", HOFFSET(type_b, d), H5::PredType::NATIVE_DOUBLE );
+//        htype_b.insertMember( "s", HOFFSET(type_b, s), htype_a );
+
+//  H5::DataSet dataset = group.createDataSet( "dset", datatype, fspace );
+  H5::DataSet dataset = group.createDataSet( "dset", hLevelStats, fspace );
+  hsize_t colCounter = 0;
+
+  // Test storage
+  {
+    hsize_t dims_[2] = {2,3};
+    H5::DataSpace dataspace_( 2, dims_ );
+    H5::IntType datatype_( H5::PredType::NATIVE_INT );
+    H5::DataSet dataset_ = group.createDataSet( "dset_", datatype_, dataspace_ );
+    int data_[6]={1,2,3,4,5,6};
+    dataset_.write( data_, datatype_ );
+
+    // Try hyperslab
+//    hsize_t offset[2] = { 0, 0 };
+//    hsize_t fdims[2]  = { 3, 1 };
+//    fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
+//    float data3[3] = {0.1, 1.0, 10.0};
+//    dataset.write(data3, datatype, H5::DataSpace::ALL, fspace );
+  }
+  {
+    /* Try compound type */
+    // Create compound type with atomic types
+    H5::CompType htype_a( sizeof(type_a) );
+    htype_a.insertMember( "a", HOFFSET(type_a, a), H5::PredType::NATIVE_FLOAT );
+    htype_a.insertMember( "b", HOFFSET(type_a, b), H5::PredType::NATIVE_INT );
+    htype_a.insertMember( "c", HOFFSET(type_a, c), H5::PredType::NATIVE_CHAR );
+
+    // Create nested compound type
+    H5::CompType htype_b( sizeof(type_b) );
+    htype_b.insertMember( "d", HOFFSET(type_b, d), H5::PredType::NATIVE_DOUBLE );
+    htype_b.insertMember( "s", HOFFSET(type_b, s), htype_a );
+
+    hsize_t dim_[1] = {1};
+    H5::DataSpace space_( 1, dim_ );
+
+    H5::DataSet dataset_ = group.createDataSet( "dsetComp_", htype_a, space_ );
+
+    type_a s_a;
+    s_a.a = 0.1f;
+    s_a.b = 4;
+    s_a.c = 'a';
+    dataset_.write( &s_a, htype_a, space_ );
+
+    hsize_t dim__[2] = {2,2};
+    H5::DataSpace space__( 2, dim__ );
+    H5::DataSet dataset__ = group.createDataSet( "dsetComp__", htype_b, space__ );
+
+    type_b s_b[4];
+    s_b[0].d = 0.1f;
+    s_b[0].s = s_a;
+    s_b[1].d = 0.2f;
+    s_b[1].s = type_a();
+    s_b[2].d = 0.3f;
+    s_b[2].s = s_a;
+    s_b[3].d = 0.4f;
+    s_b[3].s = s_a;
+    dataset__.write( s_b, htype_b, space__ );
+  }
+
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
   int frameCounter = 0;
   for(std::vector<dvo_benchmark::RgbdPair>::iterator it = pairs.begin(); ros::ok() && it != pairs.end(); ++it, ++frameCounter)
   {
-	reference = current;
+    reference = current;
     current = load(camera, folder + it->RgbFile(), folder + it->DepthFile());
 
     if(!reference) continue;
@@ -458,13 +557,44 @@ void BenchmarkNode::run()
     if(cfg_.EstimateRequired())
     {
       static dvo::util::stopwatch sw_match("match", 100);
+      dvo::DenseTracker::Result result; // Stores statistics too
       sw_match.start();
       {
-        dense_tracker.match(*reference, *current, relative);
+        dense_tracker.match(*reference, *current, result);
+        relative = result.Transformation;
       }
       sw_match.stop();
 
       trajectory = trajectory * relative;
+
+      {
+//        H5::DataSpace fspace = dataset.getSpace ();
+        // Select hyperslab to write in the dataset
+//        hsize_t offset[2] = { 0, colCounter++ };
+//        hsize_t fdims[2]  = { 3, 1 };
+//        fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
+//        // Define the data to write
+//        hsize_t dataDim[1] = {3};
+//        H5::DataSpace mspace(1,dataDim);
+//        // Write local data to the dataset in the h5 file
+//        float data3[3] = {0.1, 1.0, 10.0};
+//        dataset.write(data3, H5::PredType::NATIVE_FLOAT, mspace, fspace );
+      }
+
+      {
+        // Save statistics vector in the dataset
+        benchH5File.dset << result.Statistics.Levels.data();
+
+        /* Save all statistics as a compound object */
+        hsize_t offset[2] = { 0, colCounter++ };
+        hsize_t fdims[2]  = { 3, 1 };
+        fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
+        // Define the data to write
+        hsize_t dataDim[1] = {3};
+        H5::DataSpace mspace(1,dataDim);
+        // Write local data to the dataset in the h5 file
+        dataset.write(result.Statistics.Levels.data(), hLevelStats, mspace, fspace );
+      }
 
       if(cfg_.EstimateTrajectory)
       {

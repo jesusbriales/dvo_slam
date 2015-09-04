@@ -444,98 +444,23 @@ void BenchmarkNode::run()
   dvo::core::RgbdImagePyramid::Ptr reference, current;
 
   // Create HDF5 file for the experiment
-  H5::H5File  file( "ex_cpp.h5", H5F_ACC_TRUNC );
+  H5::H5File  file( "benchmark.h5", H5F_ACC_TRUNC );
   H5::Group   group( file.createGroup( "this_experiment") );
   hsize_t     dims[2]={3, pairs.size()};
   H5::DataSpace fspace( 2, dims );
 
-  // Create HDF5 benchmark file (obsolete...?)
-  H5::H5FileBenchmark benchH5File( "benchmark.h5", H5F_ACC_TRUNC );
-
-
-
-//  H5::FloatType datatype( H5::PredType::NATIVE_FLOAT );
-  // Create compound type for LevelStats
-  H5::CompType hLevelStats( sizeof(dvo::DenseTracker::LevelStats) );
-  hLevelStats.insertMember( "MaxValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, MaxValidPixels), H5::PredType::NATIVE_UINT );
-  hLevelStats.insertMember( "ValidPixels", HOFFSET(dvo::DenseTracker::LevelStats, ValidPixels), H5::PredType::NATIVE_UINT );
-  hLevelStats.insertMember( "SelectedPixels", HOFFSET(dvo::DenseTracker::LevelStats, SelectedPixels), H5::PredType::NATIVE_UINT );
-  // Create nested compound type
-//        H5::CompType htype_b( sizeof(type_b) );
-//        htype_b.insertMember( "d", HOFFSET(type_b, d), H5::PredType::NATIVE_DOUBLE );
-//        htype_b.insertMember( "s", HOFFSET(type_b, s), htype_a );
-
-  // Create compound type for IterationStats
-  H5::CompType hIterationStats( sizeof(dvo::DenseTracker::IterationStats) );
-  hIterationStats.insertMember( "TDistributionLogLikelihood", HOFFSET(dvo::DenseTracker::IterationStats, TDistributionLogLikelihood), H5::PredType::NATIVE_DOUBLE );
-  hIterationStats.insertMember( "PriorLogLikelihood", HOFFSET(dvo::DenseTracker::IterationStats, PriorLogLikelihood), H5::PredType::NATIVE_DOUBLE );
+  H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
+//  H5::DataSetStream dsetLevelStats( group, "dsetOut2", H5::CompTypeLevelStats(), 3, pairs.size() );
 
   // Create variable length array for iteration statistics
 //  H5::VarLenType hIterationStatsVec( &H5::PredType::NATIVE_UINT );
-  H5::VarLenType hIterationStatsVec( &hIterationStats );
+//  H5::VarLenType hIterationStatsVec( &hIterationStats );
   // Add this type to the LevelStats too
 //  hLevelStats.insertMember( "Iterations", HOFFSET(dvo::DenseTracker::LevelStats,Iterations), hIterationStatsVec );
 
 //  H5::DataSet dataset = group.createDataSet( "dset", datatype, fspace );
-  H5::DataSet dataset = group.createDataSet( "dset", hLevelStats, fspace );
-  H5::DataSet datasetItStat = group.createDataSet( "dsetItStat", hIterationStatsVec, fspace );
-  hsize_t colCounter = 0;
-
-  // Test storage
-  {
-    hsize_t dims_[2] = {2,3};
-    H5::DataSpace dataspace_( 2, dims_ );
-    H5::IntType datatype_( H5::PredType::NATIVE_INT );
-    H5::DataSet dataset_ = group.createDataSet( "dset_", datatype_, dataspace_ );
-    int data_[6]={1,2,3,4,5,6};
-    dataset_.write( data_, datatype_ );
-
-    // Try hyperslab
-//    hsize_t offset[2] = { 0, 0 };
-//    hsize_t fdims[2]  = { 3, 1 };
-//    fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
-//    float data3[3] = {0.1, 1.0, 10.0};
-//    dataset.write(data3, datatype, H5::DataSpace::ALL, fspace );
-  }
-  {
-    /* Try compound type */
-    // Create compound type with atomic types
-    H5::CompType htype_a( sizeof(type_a) );
-    htype_a.insertMember( "a", HOFFSET(type_a, a), H5::PredType::NATIVE_FLOAT );
-    htype_a.insertMember( "b", HOFFSET(type_a, b), H5::PredType::NATIVE_INT );
-    htype_a.insertMember( "c", HOFFSET(type_a, c), H5::PredType::NATIVE_CHAR );
-
-    // Create nested compound type
-    H5::CompType htype_b( sizeof(type_b) );
-    htype_b.insertMember( "d", HOFFSET(type_b, d), H5::PredType::NATIVE_DOUBLE );
-    htype_b.insertMember( "s", HOFFSET(type_b, s), htype_a );
-
-    hsize_t dim_[1] = {1};
-    H5::DataSpace space_( 1, dim_ );
-
-    H5::DataSet dataset_ = group.createDataSet( "dsetComp_", htype_a, space_ );
-
-    type_a s_a;
-    s_a.a = 0.1f;
-    s_a.b = 4;
-    s_a.c = 'a';
-    dataset_.write( &s_a, htype_a, space_ );
-
-    hsize_t dim__[2] = {2,2};
-    H5::DataSpace space__( 2, dim__ );
-    H5::DataSet dataset__ = group.createDataSet( "dsetComp__", htype_b, space__ );
-
-    type_b s_b[4];
-    s_b[0].d = 0.1f;
-    s_b[0].s = s_a;
-    s_b[1].d = 0.2f;
-    s_b[1].s = type_a();
-    s_b[2].d = 0.3f;
-    s_b[2].s = s_a;
-    s_b[3].d = 0.4f;
-    s_b[3].s = s_a;
-    dataset__.write( s_b, htype_b, space__ );
-  }
+//  H5::DataSet dataset = group.createDataSet( "dset", hLevelStats, fspace );
+//  H5::DataSet datasetItStat = group.createDataSet( "dsetItStat", hIterationStatsVec, fspace );
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
@@ -580,38 +505,9 @@ void BenchmarkNode::run()
       sw_match.stop();
 
       trajectory = trajectory * relative;
-
-      {
-//        H5::DataSpace fspace = dataset.getSpace ();
-        // Select hyperslab to write in the dataset
-//        hsize_t offset[2] = { 0, colCounter++ };
-//        hsize_t fdims[2]  = { 3, 1 };
-//        fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
-//        // Define the data to write
-//        hsize_t dataDim[1] = {3};
-//        H5::DataSpace mspace(1,dataDim);
-//        // Write local data to the dataset in the h5 file
-//        float data3[3] = {0.1, 1.0, 10.0};
-//        dataset.write(data3, H5::PredType::NATIVE_FLOAT, mspace, fspace );
-      }
-
       {
         // Save statistics vector in the dataset
-        benchH5File.dset << result.Statistics.Levels.data();
-
-        /* Save all statistics as a compound object */
-        hsize_t offset[2] = { 0, colCounter++ };
-        hsize_t fdims[2]  = { 3, 1 };
-        fspace.selectHyperslab( H5S_SELECT_SET, fdims, offset );
-        // Define the data to write
-        hsize_t dataDim[1] = {3};
-        H5::DataSpace mspace(1,dataDim);
-        // Write local data to the dataset in the h5 file
-        dataset.write(result.Statistics.Levels.data(), hLevelStats, mspace, fspace );
-
-        /* Save iteration statistics as a dataset of variable length objects */
-        // Not got yet
-//        datasetItStat.write(result.Statistics.Levels[0].Iterations, hIterationStatsVec, mspace, fspace );
+        dsetLevelStats << result.Statistics.Levels.data();
       }
 
       if(cfg_.EstimateTrajectory)

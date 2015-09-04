@@ -35,15 +35,15 @@ public:
 };
 #undef THIS_TYPE
 
-class DataSetStream /* : public DataSet */
+class DataSetStream : public DataSet
 {
 public:
 //  DataSetStream() : DataSet(), idx(0) {}
 
   DataSetStream( const DataSet& dset ) :
-    dset_( dset ), idx(0)
+    DataSet(dset), idx(0)
   {
-//    // Get dataset internal configuration
+    // Get dataset internal configuration
 //    type = dset.getDataType();
 //    fspace = dset.getSpace();
 
@@ -82,13 +82,13 @@ public:
     DataSpace fspace;
 
     // Get dataset internal configuration
-    type = dset_.getDataType();
-    fspace = dset_.getSpace();
+    type = this->getDataType();
+    fspace = this->getSpace();
 
     // Get dimensions to configure the stream
     hsize_t* dims;
 //    fspace.getSimpleExtentDims( dims ); // Why not work?
-    dset_.getSpace().getSimpleExtentDims( dims );
+    this->getSpace().getSimpleExtentDims( dims );
 
     // Define the layout of data in local memory (vector of variables/structs)
     hsize_t dataDim[1] = {dims[0]};
@@ -105,13 +105,10 @@ public:
     fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), offset );
 
     // Write local data to the dataset in the h5 file
-//    this->write(levelsPtr, CompTypeLevelStats(), mspace, fspace );
-//    dset_.write(levelsPtr, this->getDataType(), mspace, fspace );
-    dset_.write(levelsPtr, type, mspace, fspace );
+    this->write(levelsPtr, type, mspace, fspace );
   }
 
 private:
-  DataSet dset_;
   size_t idx;
 
 //  std::vector<hsize_t> fSlice;
@@ -120,6 +117,11 @@ private:
 //  DataSpace mspace;
 //  DataSpace fspace;
 };
+
+//DataSet& operator<< ( DataSet& dset, const dvo::DenseTracker::LevelStats& s )
+//{
+
+//}
 
 } // end H5 namespace
 

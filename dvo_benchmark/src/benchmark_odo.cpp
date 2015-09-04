@@ -61,7 +61,7 @@ H5::DataSetStream& operator<< ( H5::DataSetStream& dset, const dvo::DenseTracker
   fspace = dset.getSpace();
 
   // Get dimensions to configure the stream
-  hsize_t* dims;
+  hsize_t* dims = new hsize_t[2];
 //    fspace.getSimpleExtentDims( dims ); // Why not work?
   dset.getSpace().getSimpleExtentDims( dims );
 
@@ -81,6 +81,8 @@ H5::DataSetStream& operator<< ( H5::DataSetStream& dset, const dvo::DenseTracker
 
   // Write local data to the dataset in the h5 file
   dset.write(sv.data(), type, mspace, fspace );
+
+  delete dims;
 }
 
 dvo::core::RgbdImagePyramidPtr load(dvo::core::RgbdCameraPyramid& camera, std::string rgb_file, std::string depth_file)

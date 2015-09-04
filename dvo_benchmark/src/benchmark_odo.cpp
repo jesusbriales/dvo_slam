@@ -449,8 +449,18 @@ void BenchmarkNode::run()
   hsize_t     dims[2]={3, pairs.size()};
   H5::DataSpace fspace( 2, dims );
 
-  H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
-//  H5::DataSetStream dsetLevelStats( group, "dsetOut2", H5::CompTypeLevelStats(), 3, pairs.size() );
+  H5::DataSet dset = group.createDataSet("dset", H5::CompTypeLevelStats(), fspace );
+  size_t idx = 0;
+  std::vector<hsize_t> fSlice;
+  fSlice.resize(2);
+  fSlice[0] = 3;
+  fSlice[1] = 1;
+  std::vector<hsize_t> fOffset;
+  fOffset.resize(2);
+  fOffset[0] = 0;
+  hsize_t dataDim = 3;
+  H5::DataSpace mspace(1, &dataDim);
+//  H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
 
   // Create variable length array for iteration statistics
 //  H5::VarLenType hIterationStatsVec( &H5::PredType::NATIVE_UINT );
@@ -507,7 +517,11 @@ void BenchmarkNode::run()
       trajectory = trajectory * relative;
       {
         // Save statistics vector in the dataset
-        dsetLevelStats << result.Statistics.Levels.data();
+        fOffset[1] = idx++;
+        fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+        dset.write( result.Statistics.Levels.data(), H5::CompTypeLevelStats(), mspace, fspace );
+
+//        dsetLevelStats << result.Statistics.Levels.data();
       }
 
       if(cfg_.EstimateTrajectory)

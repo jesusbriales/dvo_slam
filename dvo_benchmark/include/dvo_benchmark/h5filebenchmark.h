@@ -62,17 +62,6 @@ public:
 //    fSlice[1] = 1;
   }
 
-//  ~DataSetStream()
-//  {
-//    std::cout << "DataSetStream is being deleted" << std::endl;
-
-//    // Manually close all H5 related objects
-//    dset_.close();
-//    type.close();
-//    mspace.close();
-//    fspace.close();
-//  }
-
   void operator<< (const dvo::DenseTracker::LevelStats *levelsPtr)
   {
     std::vector<hsize_t> fSlice;
@@ -108,7 +97,7 @@ public:
     this->write(levelsPtr, type, mspace, fspace );
   }
 
-private:
+public:
   size_t idx;
 
 //  std::vector<hsize_t> fSlice;

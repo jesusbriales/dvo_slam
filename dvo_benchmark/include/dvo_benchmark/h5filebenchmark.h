@@ -35,6 +35,20 @@ public:
 };
 #undef THIS_TYPE
 
+// Define new type for IterationStats struct
+#define THIS_TYPE dvo::DenseTracker::IterationStats
+class CompTypeIterationStats : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypeIterationStats()
+  {
+    ADD_MEMBER(Id,PredType::NATIVE_INT);
+    ADD_MEMBER(ValidConstraints,PredType::NATIVE_INT);
+    ADD_MEMBER(TDistributionLogLikelihood,PredType::NATIVE_DOUBLE);
+  }
+};
+#undef THIS_TYPE
+
 class DataSetStream : public DataSet
 {
 public:
@@ -50,8 +64,7 @@ public:
     // Get dimensions to configure the stream
     std::vector<hsize_t> dims;
     dims.resize(2);
-//    fspace.getSimpleExtentDims( dims ); // Why not work?
-    dset.getSpace().getSimpleExtentDims( dims.data() );
+    fspace.getSimpleExtentDims( dims.data() );
 
     // Define the layout of data in local memory (vector of variables/structs)
     hsize_t dataDim[1] = {dims[0]};

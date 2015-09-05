@@ -467,20 +467,87 @@ void BenchmarkNode::run()
   hsize_t     dims[2]={3, pairs.size()};
   H5::DataSpace fspace( 2, dims );
   hsize_t     dims2[2]={30, pairs.size()};
-  H5::DataSpace fspace2( 2, dims );
+  H5::DataSpace fspace2( 2, dims2 );
+  hsize_t     dims3[1]={pairs.size()};
+  H5::DataSpace fspace3( 1, dims3 );
   H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
   H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
+//  H5::DataSetStream dsetResult( group.createDataSet("dsetResults", H5::CompTypeResult(), fspace3 ) );
+
+  // Test of VL with strings
+  {
+    std::vector<const char*> arr_c_str;
+    std::string s1 = "hi";
+    std::string s2 = "w";
+    std::string s3 = "d' you";
+    arr_c_str.push_back(s1.c_str());
+    arr_c_str.push_back(s2.c_str());
+    arr_c_str.push_back(s3.c_str());
+
+    hsize_t str_dimsf[1] {arr_c_str.size()};
+    H5::DataSpace dataspace(1, str_dimsf);
+    H5::StrType datatype(H5::PredType::C_S1, H5T_VARIABLE);
+    H5::DataSet str_dataset = group.createDataSet("strDset", datatype, dataspace);
+
+    str_dataset.write(arr_c_str.data(), datatype);
+  }
+
+  // Test: Create Variable Length datatype for vectors
+  {
+    std::vector< std::vector<int> > data;
+    data.resize(3);
+    data[0].resize(1);
+    data[0][0] = 1;
+    data[1].resize(3);
+    data[1][0] = 2;
+    data[1][1] = 3;
+    data[1][2] = 4;
+    data[2].resize(2);
+    data[2][0] = 5;
+    data[2][1] = 6;
+
+    hsize_t dim(data.size());
+//    hsize_t dim(7);
+    H5::DataSpace vlSpace(1, &dim);
+    H5::VarLenType vlType(&H5::PredType::NATIVE_INT);
+    H5::DataSet dset(group.createDataSet("vlDset", vlType, vlSpace));
+    hvl_t vl[dim];
+    for (hsize_t i = 0; i < dim; ++i)
+    {
+        vl[i].len = data[i].size();
+        vl[i].p = &data[i][0];
+    }
+    dset.write(vl, vlType);
+
+//    hsize_t hcount = 3;
+//    hsize_t hoffset = 1;
+//    dspace.selectHyperslab(H5S_SELECT_SET, &hcount, &hoffset);
+//    dset.write(vl, dtype, H5S_ALL, dspace);
+
+    {
+      hsize_t dimsVL[1]={7};
+      H5::DataSpace vlSpace( 1, dimsVL );
+      H5::DataSet dset = group.createDataSet("vlDset2", vlType, vlSpace);
+      hsize_t coords[1] = {1};
+      vlSpace.selectElements(H5S_SELECT_SET, 1, coords);
+      dset.write( vl, vlType, H5S_ALL, vlSpace );
+    }
+  }
 
   // Test: Create array datatype for vectors and matrices
-  hsize_t arrSize[2] = {2,3};
-  H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
-  hsize_t dsetDims[2] = {1,2};
-  H5::DataSpace arrSpace(2,dsetDims);
-  hsize_t coords[2] = {0,0};
-  arrSpace.selectElements(H5S_SELECT_SET, 1, coords);
-  double array[6] = {0.1, 100.0, 0.2, 0.3, 0.4, 0.5};
-  H5::DataSet dsetArr = group.createDataSet("dsetArr", arrType, arrSpace);
-  dsetArr.write( array, arrType, H5S_ALL, arrSpace );
+  {
+    hsize_t arrSize[2] = {2,3};
+    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
+    hsize_t dsetDims[2] = {1,2};
+    H5::DataSpace arrSpace(2,dsetDims);
+    hsize_t coords[2] = {0,0};
+    arrSpace.selectElements(H5S_SELECT_SET, 1, coords);
+    dvo::core::Vector6d vector6;
+    vector6 << 0.1, 100.0, 0.2, 0.3, 0.4, 0.5;
+    double array[6] = {0.1, 100.0, 0.2, 0.3, 0.4, 0.5};
+    H5::DataSet dsetArr = group.createDataSet("dsetArr", arrType, arrSpace);
+    dsetArr.write( vector6.data(), arrType, H5S_ALL, arrSpace );
+  }
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();

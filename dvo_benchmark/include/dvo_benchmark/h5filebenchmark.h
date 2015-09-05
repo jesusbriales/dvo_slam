@@ -61,6 +61,34 @@ public:
 };
 #undef THIS_TYPE
 
+#define THIS_TYPE dvo::DenseTracker::Stats
+class CompTypeStats : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypeStats()
+  {
+//    ADD_MEMBER(Levels,CompTypeLevelStats());
+    {
+//    hsize_t arrSize[1] = {3};
+//    H5::ArrayType arrType(CompTypeLevelStats(), 1, arrSize);
+//    ADD_MEMBER(Levels,arrType);
+    }
+  }
+};
+#undef THIS_TYPE
+
+// Define new type for Results struct
+#define THIS_TYPE dvo::DenseTracker::Result
+class CompTypeResult : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypeResult()
+  {
+    ADD_MEMBER(Statistics,CompTypeStats());
+  }
+};
+#undef THIS_TYPE
+
 class DataSetStream : public DataSet
 {
 public:

@@ -57,6 +57,15 @@ H5::DataSetStream& operator<< ( H5::DataSetStream& dset, const dvo::DenseTracker
   return dset;
 }
 
+H5::DataSetStream& operator<< ( H5::DataSetStream& dset, const dvo::DenseTracker::IterationStatsVector& sv )
+{
+  // Use class internal method to write and increment iterator
+  dset.push( sv.data() );
+
+  // Return the same lhs object to chain operations if wanted
+  return dset;
+}
+
 dvo::core::RgbdImagePyramidPtr load(dvo::core::RgbdCameraPyramid& camera, std::string rgb_file, std::string depth_file)
 {
   cv::Mat rgb, grey, grey_s16, depth, depth_inpainted, depth_mask, depth_mono, depth_float;
@@ -457,29 +466,21 @@ void BenchmarkNode::run()
   H5::Group   group( file.createGroup( "this_experiment") );
   hsize_t     dims[2]={3, pairs.size()};
   H5::DataSpace fspace( 2, dims );
-
-//  H5::DataSet dset = group.createDataSet("dset", H5::CompTypeLevelStats(), fspace );
-//  size_t idx = 0;
-//  std::vector<hsize_t> fSlice;
-//  fSlice.resize(2);
-//  fSlice[0] = 3;
-//  fSlice[1] = 1;
-//  std::vector<hsize_t> fOffset;
-//  fOffset.resize(2);
-//  fOffset[0] = 0;
-//  hsize_t dataDim = 3;
-//  H5::DataSpace mspace(1, &dataDim);
+  hsize_t     dims2[2]={30, pairs.size()};
+  H5::DataSpace fspace2( 2, dims );
   H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
+  H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
 
-  // Create variable length array for iteration statistics
-//  H5::VarLenType hIterationStatsVec( &H5::PredType::NATIVE_UINT );
-//  H5::VarLenType hIterationStatsVec( &hIterationStats );
-  // Add this type to the LevelStats too
-//  hLevelStats.insertMember( "Iterations", HOFFSET(dvo::DenseTracker::LevelStats,Iterations), hIterationStatsVec );
-
-//  H5::DataSet dataset = group.createDataSet( "dset", datatype, fspace );
-//  H5::DataSet dataset = group.createDataSet( "dset", hLevelStats, fspace );
-//  H5::DataSet datasetItStat = group.createDataSet( "dsetItStat", hIterationStatsVec, fspace );
+  // Test: Create array datatype for vectors and matrices
+  hsize_t arrSize[2] = {2,3};
+  H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
+  hsize_t dsetDims[2] = {1,2};
+  H5::DataSpace arrSpace(2,dsetDims);
+  hsize_t coords[2] = {0,0};
+  arrSpace.selectElements(H5S_SELECT_SET, 1, coords);
+  double array[6] = {0.1, 100.0, 0.2, 0.3, 0.4, 0.5};
+  H5::DataSet dsetArr = group.createDataSet("dsetArr", arrType, arrSpace);
+  dsetArr.write( array, arrType, H5S_ALL, arrSpace );
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
@@ -525,13 +526,9 @@ void BenchmarkNode::run()
 
       trajectory = trajectory * relative;
       {
-        // Save statistics vector in the dataset
-//        fOffset[1] = idx++;
-//        fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-//        dset.write( result.Statistics.Levels.data(), H5::CompTypeLevelStats(), mspace, fspace );
-
 //        dsetLevelStats << result.Statistics.Levels.data();
         dsetLevelStats << result.Statistics.Levels;
+        dsetIterationStats << result.Statistics.Levels[0].Iterations;
       }
 
       if(cfg_.EstimateTrajectory)

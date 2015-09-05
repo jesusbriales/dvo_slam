@@ -45,6 +45,18 @@ public:
     ADD_MEMBER(Id,PredType::NATIVE_INT);
     ADD_MEMBER(ValidConstraints,PredType::NATIVE_INT);
     ADD_MEMBER(TDistributionLogLikelihood,PredType::NATIVE_DOUBLE);
+
+    {
+    hsize_t arrSize[1] = {2};
+    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 1, arrSize);
+    ADD_MEMBER(TDistributionMean,arrType);
+    }
+
+    {
+    hsize_t arrSize[2] = {6,6};
+    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
+    ADD_MEMBER(EstimateInformation,arrType);
+    }
   }
 };
 #undef THIS_TYPE
@@ -83,6 +95,16 @@ public:
   }
 
   void push( const dvo::DenseTracker::LevelStats *levelsPtr )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // Write local data to the dataset in the h5 file
+    this->write(levelsPtr, type, mspace, fspace );
+  }
+
+  void push( const dvo::DenseTracker::IterationStats *levelsPtr )
   {
     // Select slab in the file space
     fOffset[1] = idx++;

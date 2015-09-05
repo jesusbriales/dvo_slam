@@ -470,10 +470,15 @@ void BenchmarkNode::run()
   H5::DataSpace fspace2( 2, dims2 );
   hsize_t     dims3[1]={pairs.size()};
   H5::DataSpace fspace3( 1, dims3 );
+  hsize_t     dims4[1]={pairs.size()};
+  H5::DataSpace fspace4( 1, dims4 );
   H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
   H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
   H5::DataSetStream dsetStats( group.createDataSet("dsetStats", H5::CompTypeStats(), fspace3 ) );
 //  H5::DataSetStream dsetResult( group.createDataSet("dsetResults", H5::CompTypeResult(), fspace3 ) );
+  H5::CompTypeIterationStats typeItStats;
+  H5::VarLenType vlItStats(&typeItStats);
+  H5::DataSet dsetVlIterationStats( group.createDataSet("dsetIterationStats2", vlItStats, fspace4 ) );
 
   // Test: Create Variable Length datatype for vectors
   {
@@ -603,6 +608,13 @@ void BenchmarkNode::run()
 //        dsetLevelStats << result.Statistics.Levels.data();
         dsetLevelStats << result.Statistics.Levels;
         dsetIterationStats << result.Statistics.Levels[0].Iterations;
+
+        hvl_t vl;
+        vl.len = result.Statistics.Levels[0].Iterations.size();
+        vl.p = result.Statistics.Levels[0].Iterations.data();
+        hsize_t coord = 0;
+        fspace4.selectElements(H5S_SELECT_SET, 1, &coord);
+        dsetVlIterationStats.write(&vl, vlItStats, H5S_ALL, fspace4);
       }
 
       if(cfg_.EstimateTrajectory)

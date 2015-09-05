@@ -44,40 +44,14 @@ public:
     DataSet(dset), idx(0)
   {
     // Get dataset internal configuration
-//    type = dset.getDataType();
-//    fspace = dset.getSpace();
-
-//    // Get dimensions to configure the stream
-//    hsize_t* dims;
-////    fspace.getSimpleExtentDims( dims ); // Why not work?
-//    dset.getSpace().getSimpleExtentDims( dims );
-
-//    // Define the layout of data in local memory (vector of variables/structs)
-//    hsize_t dataDim[1] = {dims[0]};
-//    mspace = DataSpace(1,dataDim);
-
-//    // Define the layout of the portion in file to write to
-//    fSlice.resize(2);
-//    fSlice[0] = dims[0];
-//    fSlice[1] = 1;
-  }
-
-  void operator<< (const dvo::DenseTracker::LevelStats *levelsPtr)
-  {
-    std::vector<hsize_t> fSlice;
-    // Store copy of most used parameters to avoid reading enquiring every time
-    DataType type;
-    DataSpace mspace;
-    DataSpace fspace;
-
-    // Get dataset internal configuration
-    type = this->getDataType();
-    fspace = this->getSpace();
+    type = dset.getDataType();
+    fspace = dset.getSpace();
 
     // Get dimensions to configure the stream
-    hsize_t* dims;
+    std::vector<hsize_t> dims;
+    dims.resize(2);
 //    fspace.getSimpleExtentDims( dims ); // Why not work?
-    this->getSpace().getSimpleExtentDims( dims );
+    dset.getSpace().getSimpleExtentDims( dims.data() );
 
     // Define the layout of data in local memory (vector of variables/structs)
     hsize_t dataDim[1] = {dims[0]};
@@ -88,10 +62,18 @@ public:
     fSlice[0] = dims[0];
     fSlice[1] = 1;
 
-    // Define slab in the file space
-    hsize_t offset[2] = { 0, idx++ };
-//    DataSpace fspace = this->getSpace();
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), offset );
+    // Define the offset (variable)
+    fOffset.resize(2);
+    fOffset[0] = 0;
+    fOffset[1] = 0;
+    // 2nd component is the iterator updated after each data-write
+  }
+
+  void push( const dvo::DenseTracker::LevelStats *levelsPtr )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
 
     // Write local data to the dataset in the h5 file
     this->write(levelsPtr, type, mspace, fspace );
@@ -100,11 +82,12 @@ public:
 public:
   size_t idx;
 
-//  std::vector<hsize_t> fSlice;
-//  // Store copy of most used parameters to avoid reading enquiring every time
-//  DataType type;
-//  DataSpace mspace;
-//  DataSpace fspace;
+  std::vector<hsize_t> fSlice;
+  std::vector<hsize_t> fOffset;
+  // Store copy of most used parameters to avoid reading enquiring every time
+  DataType type;
+  DataSpace mspace;
+  DataSpace fspace;
 };
 
 //DataSet& operator<< ( DataSet& dset, const dvo::DenseTracker::LevelStats& s )

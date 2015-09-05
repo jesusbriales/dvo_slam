@@ -21,20 +21,6 @@ public:
     CompType( sizeof(T) ) { }
 };
 
-// Define new type for LevelStats struct
-#define THIS_TYPE dvo::DenseTracker::LevelStats
-class CompTypeLevelStats : public BaseCompType<THIS_TYPE>
-{
-public:
-  CompTypeLevelStats()
-  {
-    ADD_MEMBER(MaxValidPixels,PredType::NATIVE_INT);
-    ADD_MEMBER(ValidPixels,PredType::NATIVE_INT);
-    ADD_MEMBER(SelectedPixels,PredType::NATIVE_INT);
-  }
-};
-#undef THIS_TYPE
-
 // Define new type for IterationStats struct
 #define THIS_TYPE dvo::DenseTracker::IterationStats
 class CompTypeIterationStats : public BaseCompType<THIS_TYPE>
@@ -57,6 +43,62 @@ public:
     H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
     ADD_MEMBER(EstimateInformation,arrType);
     }
+  }
+};
+#undef THIS_TYPE
+
+// Define equivalent class for LevelStats
+struct hLevelStats
+{
+  size_t Id, MaxValidPixels, ValidPixels, SelectedPixels;
+
+  hvl_t Iterations;
+
+  // Default constructor
+  hLevelStats() {}
+
+  // Copy constructor from original LevelStats
+  hLevelStats( dvo::DenseTracker::LevelStats& in )
+  {
+    Id = in.Id;
+    MaxValidPixels = in.MaxValidPixels;
+    ValidPixels = in.ValidPixels;
+    SelectedPixels = in.SelectedPixels;
+
+    Iterations.len = in.Iterations.size();
+    Iterations.p = in.Iterations.data();
+  }
+};
+
+// Define new type for LevelStats struct
+#define THIS_TYPE hLevelStats
+class CompTypehLevelStats : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypehLevelStats()
+  {
+    ADD_MEMBER(Id,PredType::NATIVE_UINT);
+    ADD_MEMBER(MaxValidPixels,PredType::NATIVE_UINT);
+    ADD_MEMBER(ValidPixels,PredType::NATIVE_UINT);
+    ADD_MEMBER(SelectedPixels,PredType::NATIVE_UINT);
+
+    H5::CompTypeIterationStats typeIterationStats;
+    H5::VarLenType vlIterationStats(&typeIterationStats);
+    ADD_MEMBER(Iterations,vlIterationStats);
+  }
+};
+#undef THIS_TYPE
+
+// Define new type for LevelStats struct
+#define THIS_TYPE dvo::DenseTracker::LevelStats
+class CompTypeLevelStats : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypeLevelStats()
+  {
+    ADD_MEMBER(MaxValidPixels,PredType::NATIVE_INT);
+    ADD_MEMBER(ValidPixels,PredType::NATIVE_INT);
+    ADD_MEMBER(SelectedPixels,PredType::NATIVE_INT);
   }
 };
 #undef THIS_TYPE
@@ -133,6 +175,30 @@ public:
 
     // Write local data to the dataset in the h5 file
     this->write(levelsPtr, type, mspace, fspace );
+  }
+
+  void push( dvo::DenseTracker::LevelStatsVector& sv )
+  {
+//    for(size_t i=0; i<3; i++)
+//    {
+//      hsize_t coord[2] = {i,idx};
+//      fspace.selectElements(H5S_SELECT_SET, 1, coord);
+
+//      hLevelStats hls(sv[i]);
+//      this->write(&hls, type, H5S_ALL, fspace );
+//    }
+    // Create vector of hls
+    hLevelStats hls[3]; // TODO: Make dynamic
+    for(size_t i=0; i<3; i++)
+    {
+      hls[i] = sv[i];
+    }
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // Write local data to the dataset in the h5 file
+    this->write(hls, type, mspace, fspace );
   }
 
   void push( const dvo::DenseTracker::IterationStats *levelsPtr )

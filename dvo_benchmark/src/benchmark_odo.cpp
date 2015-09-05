@@ -48,12 +48,15 @@
 #include <H5Cpp.h>
 #include <dvo_benchmark/h5filebenchmark.h>
 
-H5::DataSetStream& operator<< ( H5::DataSetStream& dset, const dvo::DenseTracker::LevelStatsVector& sv )
+H5::DataSetStream& operator<< ( H5::DataSetStream& dset, dvo::DenseTracker::LevelStatsVector& sv )
 {
-  // Use class internal method to write and increment iterator
-  dset.push( sv.data() );
+//  // Use class internal method to write and increment iterator
+//  dset.push( sv.data() );
 
-  // Return the same lhs object to chain operations if wanted
+//  // Return the same lhs object to chain operations if wanted
+//  return dset;
+
+  dset.push(sv);
   return dset;
 }
 
@@ -473,6 +476,7 @@ void BenchmarkNode::run()
   hsize_t     dims4[1]={pairs.size()};
   H5::DataSpace fspace4( 1, dims4 );
   H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
+  H5::DataSetStream dsethLevelStats( group.createDataSet("dsethLevelStats", H5::CompTypehLevelStats(), fspace ) );
   H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
   H5::DataSetStream dsetStats( group.createDataSet("dsetStats", H5::CompTypeStats(), fspace3 ) );
 //  H5::DataSetStream dsetResult( group.createDataSet("dsetResults", H5::CompTypeResult(), fspace3 ) );
@@ -605,8 +609,7 @@ void BenchmarkNode::run()
 
       trajectory = trajectory * relative;
       {
-//        dsetLevelStats << result.Statistics.Levels.data();
-        dsetLevelStats << result.Statistics.Levels;
+//        dsetLevelStats << result.Statistics.Levels;
         dsetIterationStats << result.Statistics.Levels[0].Iterations;
 
         hvl_t vl;
@@ -615,6 +618,9 @@ void BenchmarkNode::run()
         hsize_t coord = 0;
         fspace4.selectElements(H5S_SELECT_SET, 1, &coord);
         dsetVlIterationStats.write(&vl, vlItStats, H5S_ALL, fspace4);
+
+        // Try hLevelStats
+        dsethLevelStats << result.Statistics.Levels;
       }
 
       if(cfg_.EstimateTrajectory)

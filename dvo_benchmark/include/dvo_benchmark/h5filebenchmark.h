@@ -67,7 +67,10 @@ class CompTypeStats : public BaseCompType<THIS_TYPE>
 public:
   CompTypeStats()
   {
-//    ADD_MEMBER(Levels,CompTypeLevelStats());
+    CompTypeLevelStats atomType;
+    VarLenType vec( &atomType );
+
+    ADD_MEMBER(Levels,vec);
     {
 //    hsize_t arrSize[1] = {3};
 //    H5::ArrayType arrType(CompTypeLevelStats(), 1, arrSize);

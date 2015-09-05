@@ -472,36 +472,19 @@ void BenchmarkNode::run()
   H5::DataSpace fspace3( 1, dims3 );
   H5::DataSetStream dsetLevelStats( group.createDataSet("dset", H5::CompTypeLevelStats(), fspace ) );
   H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
+  H5::DataSetStream dsetStats( group.createDataSet("dsetStats", H5::CompTypeStats(), fspace3 ) );
 //  H5::DataSetStream dsetResult( group.createDataSet("dsetResults", H5::CompTypeResult(), fspace3 ) );
-
-  // Test of VL with strings
-  {
-    std::vector<const char*> arr_c_str;
-    std::string s1 = "hi";
-    std::string s2 = "w";
-    std::string s3 = "d' you";
-    arr_c_str.push_back(s1.c_str());
-    arr_c_str.push_back(s2.c_str());
-    arr_c_str.push_back(s3.c_str());
-
-    hsize_t str_dimsf[1] {arr_c_str.size()};
-    H5::DataSpace dataspace(1, str_dimsf);
-    H5::StrType datatype(H5::PredType::C_S1, H5T_VARIABLE);
-    H5::DataSet str_dataset = group.createDataSet("strDset", datatype, dataspace);
-
-    str_dataset.write(arr_c_str.data(), datatype);
-  }
 
   // Test: Create Variable Length datatype for vectors
   {
     std::vector< std::vector<int> > data;
     data.resize(3);
-    data[0].resize(1);
-    data[0][0] = 1;
-    data[1].resize(3);
-    data[1][0] = 2;
-    data[1][1] = 3;
-    data[1][2] = 4;
+    data[0].resize(3);
+    data[0][0] = 2;
+    data[0][1] = 3;
+    data[0][2] = 4;
+    data[1].resize(1);
+    data[1][0] = 1;
     data[2].resize(2);
     data[2][0] = 5;
     data[2][1] = 6;
@@ -511,7 +494,7 @@ void BenchmarkNode::run()
     H5::DataSpace vlSpace(1, &dim);
     H5::VarLenType vlType(&H5::PredType::NATIVE_INT);
     H5::DataSet dset(group.createDataSet("vlDset", vlType, vlSpace));
-    hvl_t vl[dim];
+    hvl_t vl[dim]; // Dynamic!?
     for (hsize_t i = 0; i < dim; ++i)
     {
         vl[i].len = data[i].size();
@@ -531,6 +514,30 @@ void BenchmarkNode::run()
       hsize_t coords[1] = {1};
       vlSpace.selectElements(H5S_SELECT_SET, 1, coords);
       dset.write( vl, vlType, H5S_ALL, vlSpace );
+    }
+
+    {
+      typedef struct exType {
+       double a;
+       hvl_t vl;
+      } exType;
+
+      // Write a compound type with a VL inside
+      H5::CompType cType( sizeof(exType) );
+      cType.insertMember( "a", HOFFSET(exType, a), H5::PredType::NATIVE_DOUBLE);
+      cType.insertMember( "vl", HOFFSET(exType, vl), vlType);
+
+      exType ex;
+      ex.a = 0.01;
+      ex.vl.len = data[0].size();
+      ex.vl.p = data[0].data();
+      hsize_t dim = 1;
+      H5::DataSpace space(1, &dim);
+      H5::DataSet dset(group.createDataSet("compVlDset", cType, space));
+//      hsize_t coords[1] = {1};
+//      space.selectElements(H5S_SELECT_SET, 1, coords);
+//      dset.write( &ex, cType, H5S_ALL, vlSpace );
+      dset.write( &ex, cType );
     }
   }
 

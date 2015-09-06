@@ -219,15 +219,16 @@ public:
     fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
 
     // Convert to equivalent type?
-    hLevelStats hls[3]; // TODO: Make dynamic
-    for(size_t i=0; i<3; i++)
+    std::vector<hLevelStats> hls;
+    size_t dimData = fSlice[0];
+    hls.resize( dimData );
+    for(size_t i=0; i<dimData; i++)
     {
       hls[i] = levelsPtr[i];
     }
 
     // Write local data to the dataset in the h5 file
-    this->write( hls, type, mspace, fspace );
-//    this->write(levelsPtr, type, mspace, fspace );
+    this->write( hls.data(), type, mspace, fspace );
   }
 
   void push( dvo::DenseTracker::Result *resultPtr )

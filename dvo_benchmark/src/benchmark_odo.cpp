@@ -479,36 +479,16 @@ void BenchmarkNode::run()
   // Create HDF5 file for the experiment
   H5::H5File  file( "benchmark.h5", H5F_ACC_TRUNC );
   H5::Group   group( file.createGroup( "this_experiment") );
-  // Necessary to define 2D for the Stream
-  hsize_t dims[2] = {1, pairs.size() - 1};
-  H5::DataSpace fspace( 2, dims ); //Rank flaw?
-  H5::DataSetStream dset(
-        group.createDataSet(
-          "dsetResults",
-          H5::CompTypeResult(),
-          fspace )
-        );
-  hsize_t     dims3[2]={3, pairs.size() - 1};
-  H5::DataSpace fspace3( 2, dims3 );
-//  hsize_t     dims2[2]={30, pairs.size()};
-//  H5::DataSpace fspace2( 2, dims2 );
-//  hsize_t     dims3[1]={pairs.size()};
-//  H5::DataSpace fspace3( 1, dims3 );
-//  hsize_t     dims4[1]={pairs.size()};
-//  H5::DataSpace fspace4( 1, dims4 );
+  // Take dimension from current configuration
+  size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
+  hsize_t dimsLS[2] = {numOfLevels, pairs.size() - 1};
+  H5::DataSpace fspaceLS( 2, dimsLS );
   H5::DataSetStream dsetLevelStats(
         group.createDataSet(
-          "dsetLevelStats",
+          "LevelStats",
           H5::CompTypeLevelStats(),
-          fspace3 )
+          fspaceLS )
         );
-//  H5::DataSetStream dsethLevelStats( group.createDataSet("dsethLevelStats", H5::CompTypehLevelStats(), fspace ) );
-//  H5::DataSetStream dsetIterationStats( group.createDataSet("dsetIterationStats", H5::CompTypeIterationStats(), fspace2 ) );
-//  H5::DataSetStream dsetStats( group.createDataSet("dsetStats", H5::CompTypeStats(), fspace3 ) );
-//  H5::DataSetStream dsetResult( group.createDataSet("dsetResults", H5::CompTypeResult(), fspace3 ) );
-//  H5::CompTypeIterationStats typeItStats;
-//  H5::VarLenType vlItStats(&typeItStats);
-//  H5::DataSet dsetVlIterationStats( group.createDataSet("dsetIterationStats2", vlItStats, fspace4 ) );
 
   // Test: Create Variable Length datatype for vectors
   {
@@ -634,23 +614,9 @@ void BenchmarkNode::run()
       sw_match.stop();
 
       trajectory = trajectory * relative;
-      {
-        dsetLevelStats << result.Statistics.Levels;
-//        dsetIterationStats << result.Statistics.Levels[0].Iterations;
 
-//        hvl_t vl;
-//        vl.len = result.Statistics.Levels[0].Iterations.size();
-//        vl.p = result.Statistics.Levels[0].Iterations.data();
-//        hsize_t coord = 0;
-//        fspace4.selectElements(H5S_SELECT_SET, 1, &coord);
-//        dsetVlIterationStats.write(&vl, vlItStats, H5S_ALL, fspace4);
-
-//        // Try hLevelStats
-//        dsethLevelStats << result.Statistics.Levels;
-
-        // Try results
-        dset << result;
-      }
+      // Store results and statistics
+      dsetLevelStats << result.Statistics.Levels;
 
       if(cfg_.EstimateTrajectory)
       {

@@ -22,6 +22,12 @@ public:
 template <typename T>
 struct hEquivalent;
 
+// TODO: Short macros could be defined so that
+// - The equivalent type inherits from the original one
+//   H5_EQUIVALENT_COPY(typename)
+// - If specific changes must be done, set a macro for it
+//   H5_EQUIVALENT_VL(typename,varnames_with_VL)
+
 // Define equivalent struct for LevelStats
 // Needs special treatment of Variable Length vectors
 template <>

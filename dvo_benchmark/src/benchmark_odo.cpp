@@ -498,6 +498,14 @@ void BenchmarkNode::run()
           fspaceTS )
         );
 
+  // Store attributes of the current experiment
+  hsize_t dimsAttr = 1;
+  H5::DataSpace fspaceAttr( 1, &dimsAttr );
+  H5::Attribute attr = group.createAttribute(
+        "Config", H5::CompTypeConfig(), fspaceAttr );
+  H5::CompTypeConfig attrType;
+  attr.write( attrType, &cfg );
+
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
   int frameCounter = 0;

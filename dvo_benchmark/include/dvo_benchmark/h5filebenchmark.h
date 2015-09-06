@@ -106,6 +106,34 @@ public:
 };
 #undef THIS_TYPE
 
+// Define compound type for the Config struct
+#define THIS_TYPE dvo::DenseTracker::Config
+class CompTypeConfig : public BaseCompType<THIS_TYPE>
+{
+public:
+  CompTypeConfig()
+  {
+    ADD_MEMBER(FirstLevel,PredType::NATIVE_INT);
+    ADD_MEMBER(LastLevel,PredType::NATIVE_INT);
+    ADD_MEMBER(MaxIterationsPerLevel,PredType::NATIVE_INT);
+    ADD_MEMBER(Precision,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(Mu,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(UseInitialEstimate,PredType::NATIVE_UCHAR);
+    ADD_MEMBER(UseWeighting,PredType::NATIVE_UCHAR);
+    ADD_MEMBER(UseParallel,PredType::NATIVE_UCHAR);
+    ADD_MEMBER(InfluenceFunctionType,PredType::NATIVE_INT);
+    ADD_MEMBER(InfluenceFunctionParam,PredType::NATIVE_FLOAT);
+    ADD_MEMBER(ScaleEstimatorType,PredType::NATIVE_INT);
+    ADD_MEMBER(ScaleEstimatorParam,PredType::NATIVE_FLOAT);
+    ADD_MEMBER(IntensityDerivativeThreshold,PredType::NATIVE_FLOAT);
+    ADD_MEMBER(DepthDerivativeThreshold,PredType::NATIVE_FLOAT);
+    ADD_MEMBER(SamplingProportion,PredType::NATIVE_FLOAT);
+    ADD_MEMBER(UtilityMapType,PredType::NATIVE_INT);
+    ADD_MEMBER(SamplerType,PredType::NATIVE_INT);
+  }
+};
+#undef THIS_TYPE
+
 class DataSetStream : public DataSet
 {
 public:

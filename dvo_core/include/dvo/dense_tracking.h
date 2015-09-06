@@ -123,9 +123,16 @@ public:
   };
   typedef std::vector<LevelStats> LevelStatsVector;
 
+  struct TimeStats
+  {
+    double level, it, error, linsys, presel, prejac, sel;
+  };
+  typedef std::vector<TimeStats> TimeStatsVector;
+
   struct Stats
   {
     LevelStatsVector Levels;
+    TimeStatsVector Times;
   };
 
   struct Result

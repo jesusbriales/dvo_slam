@@ -478,6 +478,16 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       level_stats.TerminationCriterion = TerminationCriteria::IterationsExceeded;
 
     sw_level[itctx_.Level].stop();
+    // Store stopwatch times for statistical purposes
+    result.Statistics.Times.push_back(TimeStats());
+    TimeStats& time_stats = result.Statistics.Times.back();
+    time_stats.level = sw_level[itctx_.Level].computeAndReset();
+    time_stats.it = sw_it[itctx_.Level].computeAndReset();
+    time_stats.error = sw_error[itctx_.Level].computeAndReset();
+    time_stats.linsys = sw_linsys[itctx_.Level].computeAndReset();
+    time_stats.presel = sw_presel[itctx_.Level].computeAndReset();
+    time_stats.prejac = sw_prejac[itctx_.Level].computeAndReset();
+    time_stats.sel = sw_sel[itctx_.Level].computeAndReset();
   }
 
   LevelStats& last_level = result.Statistics.Levels.back();

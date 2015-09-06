@@ -89,6 +89,12 @@ public:
     }
   }
 
+  // Keep for back-compatibility
+  inline void stopAndPrint()
+  {
+    stopPrintAndReset();
+  }
+
   inline double computeAndReset()
   {
     double meanValue = compute();

@@ -52,6 +52,13 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO
    "${SSE_FLAGS} -O3 -march=native"
 )
 
+# Find all headers to include them in the project
+# NOTE: This method needs to generate the project
+# again from CMake to update creation/removal of files
+file(GLOB_RECURSE HEADERS
+	include/*.h
+)
+
 rosbuild_add_library(${PROJECT_NAME} 
     src/core/interpolation.cpp
     src/core/intrinsic_matrix.cpp
@@ -75,6 +82,9 @@ rosbuild_add_library(${PROJECT_NAME}
     src/dense_tracking.cpp
     src/dense_tracking_impl.cpp
     src/dense_tracking_config.cpp
+
+	# Include headers (for visualization in the project only):
+	${HEADERS}
 )
 
 target_link_libraries(${PROJECT_NAME} 

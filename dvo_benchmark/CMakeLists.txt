@@ -45,10 +45,20 @@ link_directories(${VTK_LIBRARY_DIRS})
 find_package(HDF5)
 include_directories(${HDF5_INCLUDE_DIR})
 
+# Find all headers to include them in the project
+# NOTE: This method needs to generate the project
+# again from CMake to update creation/removal of files
+file(GLOB_RECURSE HEADERS
+	include/*.h
+)
+
 rosbuild_add_executable(benchmark
 #     src/benchmark_slam.cpp
     src/benchmark_odo.cpp
     src/h5filebenchmark.cpp
+
+	# Include headers (for visualization in the project only):
+	${HEADERS}
 )
 
 #rosbuild_add_executable(experiment

@@ -89,7 +89,7 @@ void DenseTracker::configure(const Config& config)
       .scaleEstimator()->configure(cfg.ScaleEstimatorParam);
 
     weight_calculation_
-      .influenceFunction(InfluenceFunctions::get(cfg.InfluenceFuntionType))
+      .influenceFunction(InfluenceFunctions::get(cfg.InfluenceFunctionType))
       .influenceFunction()->configure(cfg.InfluenceFunctionParam);
   }
   else

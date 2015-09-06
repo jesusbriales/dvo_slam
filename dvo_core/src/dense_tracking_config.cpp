@@ -32,7 +32,7 @@ DenseTracker::Config::Config() :
   Mu(0),
   UseInitialEstimate(false),
   UseWeighting(true),
-  InfluenceFuntionType(dvo::core::InfluenceFunctions::TDistribution),
+  InfluenceFunctionType(dvo::core::InfluenceFunctions::TDistribution),
   InfluenceFunctionParam(dvo::core::TDistributionInfluenceFunction::DEFAULT_DOF),
   ScaleEstimatorType(dvo::core::ScaleEstimators::TDistribution),
   ScaleEstimatorParam(dvo::core::TDistributionScaleEstimator::DEFAULT_DOF),

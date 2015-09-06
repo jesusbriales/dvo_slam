@@ -53,7 +53,7 @@ public:
 
     bool UseParallel;
 
-    dvo::core::InfluenceFunctions::enum_t InfluenceFuntionType;
+    dvo::core::InfluenceFunctions::enum_t InfluenceFunctionType;
     float InfluenceFunctionParam;
 
     dvo::core::ScaleEstimators::enum_t ScaleEstimatorType;
@@ -62,9 +62,9 @@ public:
     float IntensityDerivativeThreshold;
     float DepthDerivativeThreshold;
 
-	float SamplingProportion;
-	dvo::selection::UtilityMaps::enum_t UtilityMapType;
-	dvo::selection::Samplers::enum_t SamplerType;
+    float SamplingProportion;
+    dvo::selection::UtilityMaps::enum_t UtilityMapType;
+    dvo::selection::Samplers::enum_t SamplerType;
 
     Config();
     size_t getNumLevels() const;
@@ -245,7 +245,7 @@ std::ostream& operator<< (std::basic_ostream<CharT, Traits> &out, const dvo::Den
   << ", Use Weighting = " << (config.UseWeighting ? "true" : "false")
   << ", Scale Estimator = " << dvo::core::ScaleEstimators::str(config.ScaleEstimatorType)
   << ", Scale Estimator Param = " << config.ScaleEstimatorParam
-  << ", Influence Function = " << dvo::core::InfluenceFunctions::str(config.InfluenceFuntionType)
+  << ", Influence Function = " << dvo::core::InfluenceFunctions::str(config.InfluenceFunctionType)
   << ", Influence Function Param = " << config.InfluenceFunctionParam
   << ", Intensity Derivative Threshold = " << config.IntensityDerivativeThreshold
   << ", Depth Derivative Threshold = " << config.DepthDerivativeThreshold

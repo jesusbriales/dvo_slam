@@ -62,7 +62,7 @@ struct hEquivalent<dvo::DenseTracker::TimeStats>
   this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
 
 template <class T>
-class BaseCompType : public CompType
+struct BaseCompType : public CompType
 {
 public:
   BaseCompType() :
@@ -72,9 +72,8 @@ public:
 
 // Define new type for IterationStats struct
 #define THIS_TYPE dvo::DenseTracker::IterationStats
-class CompTypeIterationStats : public BaseCompType<THIS_TYPE>
+struct CompTypeIterationStats : BaseCompType<THIS_TYPE>
 {
-public:
   CompTypeIterationStats()
   {
     ADD_MEMBER(Id,PredType::NATIVE_INT);
@@ -120,9 +119,8 @@ struct hLevelStats
 
 // Define new type for LevelStats struct
 #define THIS_TYPE hLevelStats
-class CompTypeLevelStats : public BaseCompType<THIS_TYPE>
+struct CompTypeLevelStats : BaseCompType<THIS_TYPE>
 {
-public:
   CompTypeLevelStats()
   {
     ADD_MEMBER(Id,PredType::NATIVE_UINT);
@@ -136,9 +134,8 @@ public:
 
 // Define new type for Times struct
 #define THIS_TYPE dvo::DenseTracker::TimeStats
-class CompTypeTimeStats : public BaseCompType<THIS_TYPE>
+struct CompTypeTimeStats : BaseCompType<THIS_TYPE>
 {
-public:
   CompTypeTimeStats()
   {
     ADD_MEMBER(level,PredType::NATIVE_DOUBLE);
@@ -154,9 +151,8 @@ public:
 
 // Define compound type for the Config struct
 #define THIS_TYPE dvo::DenseTracker::Config
-class CompTypeConfig : public BaseCompType<THIS_TYPE>
+struct CompTypeConfig : BaseCompType<THIS_TYPE>
 {
-public:
   CompTypeConfig()
   {
     // Note: Bool variables are stored into NATIVE_UCHAR (1 byte)

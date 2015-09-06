@@ -17,6 +17,46 @@ public:
   static const CompType Config;
 };
 
+// Define equivalent H5 structs as a template
+// for better generalization
+template <typename T>
+struct hEquivalent;
+
+// Define equivalent struct for LevelStats
+template <>
+struct hEquivalent<dvo::DenseTracker::LevelStats>
+{
+  size_t Id, MaxValidPixels, ValidPixels, SelectedPixels;
+
+  hvl_t Iterations;
+
+  // Default constructor
+  hEquivalent() {}
+
+  // Copy constructor from original LevelStats
+  hEquivalent( dvo::DenseTracker::LevelStats& in ) :
+    Id(in.Id),
+    MaxValidPixels(in.MaxValidPixels),
+    ValidPixels(in.ValidPixels),
+    SelectedPixels(in.SelectedPixels)
+  {
+    Iterations.len = in.Iterations.size();
+    Iterations.p = in.Iterations.data();
+  }
+};
+
+template <>
+struct hEquivalent<dvo::DenseTracker::TimeStats>
+    : public dvo::DenseTracker::TimeStats
+{
+  // Default constructor
+  hEquivalent() {}
+
+  // Copy constructor from original LevelStats
+  hEquivalent( dvo::DenseTracker::TimeStats& in ) :
+    dvo::DenseTracker::TimeStats(in) {}
+};
+
 // Useful macro to reduce extension of new types
 #define ADD_MEMBER(name,type) \
   this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
@@ -147,11 +187,10 @@ public:
 };
 #undef THIS_TYPE
 
+template <typename T>
 class DataSetStream : public DataSet
 {
 public:
-//  DataSetStream() : DataSet(), idx(0) {}
-
   DataSetStream( const DataSet& dset ) :
     DataSet(dset), idx(0)
   {
@@ -181,103 +220,38 @@ public:
     // 2nd component is the iterator updated after each data-write
   }
 
-  void push( dvo::DenseTracker::LevelStatsVector& sv )
-  {
-//    for(size_t i=0; i<3; i++)
-//    {
-//      hsize_t coord[2] = {i,idx};
-//      fspace.selectElements(H5S_SELECT_SET, 1, coord);
-
-//      hLevelStats hls(sv[i]);
-//      this->write(&hls, type, H5S_ALL, fspace );
-//    }
-    // Create vector of hls
-    hLevelStats hls[3]; // TODO: Make dynamic
-    for(size_t i=0; i<3; i++)
-    {
-      hls[i] = sv[i];
-    }
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    // Write local data to the dataset in the h5 file
-    this->write(hls, type, mspace, fspace );
-  }
-
-  void push( const dvo::DenseTracker::IterationStats *levelsPtr )
+  void push( T *dataPtr )
   {
     // Select slab in the file space
     fOffset[1] = idx++;
     fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
 
-    // Write local data to the dataset in the h5 file
-    this->write(levelsPtr, type, mspace, fspace );
-  }
-
-  void push( dvo::DenseTracker::LevelStats *levelsPtr )
-  {
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    // Convert to equivalent type?
-    std::vector<hLevelStats> hls;
+    // TODO: Be aware of dimensions
+    // TODO: Could this be overloaded for vector objects and non-vector?
+    // Convert to H5 compatible type
+    std::vector<hEquivalent<T>> htype_vector;
     size_t dimData = fSlice[0];
-    hls.resize( dimData );
+    htype_vector.resize( dimData );
     for(size_t i=0; i<dimData; i++)
     {
-      hls[i] = levelsPtr[i];
+      htype_vector[i] = dataPtr[i];
     }
 
     // Write local data to the dataset in the h5 file
-    this->write( hls.data(), type, mspace, fspace );
-  }
-
-  void push( dvo::DenseTracker::TimeStats *ptr )
-  {
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    // Convert to equivalent type? No here
-//    std::vector<hLevelStats> hls;
-//    size_t dimData = fSlice[0];
-//    hls.resize( dimData );
-//    for(size_t i=0; i<dimData; i++)
-//    {
-//      hls[i] = ptr[i];
-//    }
-
-    // Write local data to the dataset in the h5 file
-    this->write( ptr, type, mspace, fspace );
-  }
-
-  void push( const void* dataPtr )
-  {
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    // Write local data to the dataset in the h5 file
-    this->write(dataPtr, type, mspace, fspace );
+    this->write( htype_vector.data(), type, mspace, fspace );
   }
 
 public:
-  size_t idx;
+  // Parameters to control the position in file to write
+  size_t idx; // Iterator for the stream (incremented after each push)
+  std::vector<hsize_t> fSlice;  // Slice size (count of elements in each dimension)
+  std::vector<hsize_t> fOffset; // Slice offset (position of the first point)
 
-  std::vector<hsize_t> fSlice;
-  std::vector<hsize_t> fOffset;
   // Store copy of most used parameters to avoid reading enquiring every time
   DataType type;
   DataSpace mspace;
   DataSpace fspace;
 };
-
-//DataSet& operator<< ( DataSet& dset, const dvo::DenseTracker::LevelStats& s )
-//{
-
-//}
 
 } // end H5 namespace
 

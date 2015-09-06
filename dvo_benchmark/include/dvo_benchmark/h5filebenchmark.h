@@ -88,58 +88,20 @@ public:
 };
 #undef THIS_TYPE
 
-// Define equivalent class for Stats
-struct hStats
-{
-  hvl_t Levels;
-
-  // Default constructor
-  hStats() {}
-
-  // Copy constructor from original Stats
-  hStats( dvo::DenseTracker::Stats& in )
-  {
-    Levels.len = in.Levels.size();
-    Levels.p = in.Levels.data();
-  }
-};
-
-#define THIS_TYPE hStats
-class CompTypeStats : public BaseCompType<THIS_TYPE>
+// Define new type for Times struct
+#define THIS_TYPE dvo::DenseTracker::TimeStats
+class CompTypeTimes : public BaseCompType<THIS_TYPE>
 {
 public:
-  CompTypeStats()
+  CompTypeTimes()
   {
-    CompTypeLevelStats typeLevelStats;
-    H5::VarLenType vlLevelStats(&typeLevelStats);
-    ADD_MEMBER(Levels,vlLevelStats);
-  }
-};
-#undef THIS_TYPE
-
-// Define equivalent class for Result
-struct hResult
-{
-  hStats Statistics;
-
-  // Default constructor
-  hResult() {}
-
-  // Copy constructor from original Stats
-  hResult( dvo::DenseTracker::Result& in ) :
-    Statistics( in.Statistics )
-  {
-  }
-};
-
-// Define new type for Results struct
-#define THIS_TYPE hResult
-class CompTypeResult : public BaseCompType<THIS_TYPE>
-{
-public:
-  CompTypeResult()
-  {
-    ADD_MEMBER(Statistics,CompTypeStats());
+    ADD_MEMBER(level,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(it,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(error,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(linsys,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(presel,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(prejac,PredType::NATIVE_DOUBLE);
+    ADD_MEMBER(sel,PredType::NATIVE_DOUBLE);
   }
 };
 #undef THIS_TYPE
@@ -231,23 +193,23 @@ public:
     this->write( hls.data(), type, mspace, fspace );
   }
 
-  void push( dvo::DenseTracker::Result *resultPtr )
+  void push( dvo::DenseTracker::TimeStats *ptr )
   {
     // Select slab in the file space
     fOffset[1] = idx++;
-//    fspace.selectElements( H5S_SELECT_SET, 1, fOffset.data() );
     fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
 
-    // Convert to equivalent type?
-    hResult hr[1]; // TODO: Make dynamic
-    for(size_t i=0; i<1; i++)
-    {
-      hr[i] = resultPtr[i];
-    }
+    // Convert to equivalent type? No here
+//    std::vector<hLevelStats> hls;
+//    size_t dimData = fSlice[0];
+//    hls.resize( dimData );
+//    for(size_t i=0; i<dimData; i++)
+//    {
+//      hls[i] = ptr[i];
+//    }
 
     // Write local data to the dataset in the h5 file
-//    this->write(hr, type, H5S_ALL, fspace );
-    this->write( hr, type, mspace, fspace );
+    this->write( ptr, type, mspace, fspace );
   }
 
   void push( const void* dataPtr )

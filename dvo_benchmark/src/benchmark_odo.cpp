@@ -50,14 +50,6 @@
 
 H5::DataSetStream& operator<< (
     H5::DataSetStream& dset,
-    dvo::DenseTracker::Result& res )
-{
-  dset.push(&res); // TODO: Input pointer directly?
-  return dset;
-}
-
-H5::DataSetStream& operator<< (
-    H5::DataSetStream& dset,
     dvo::DenseTracker::LevelStatsVector& sv )
 {
   // Use class internal method to write and increment iterator
@@ -65,9 +57,17 @@ H5::DataSetStream& operator<< (
 
   // Return the same lhs object to chain operations if wanted
   return dset;
+}
 
-//  dset.push(sv);
-//  return dset;
+H5::DataSetStream& operator<< (
+    H5::DataSetStream& dset,
+    dvo::DenseTracker::TimeStatsVector& sv )
+{
+  // Use class internal method to write and increment iterator
+  dset.push( sv.data() );
+
+  // Return the same lhs object to chain operations if wanted
+  return dset;
 }
 
 H5::DataSetStream& operator<< (
@@ -489,87 +489,14 @@ void BenchmarkNode::run()
           H5::CompTypeLevelStats(),
           fspaceLS )
         );
-
-  // Test: Create Variable Length datatype for vectors
-  {
-    std::vector< std::vector<int> > data;
-    data.resize(3);
-    data[0].resize(3);
-    data[0][0] = 2;
-    data[0][1] = 3;
-    data[0][2] = 4;
-    data[1].resize(1);
-    data[1][0] = 1;
-    data[2].resize(2);
-    data[2][0] = 5;
-    data[2][1] = 6;
-
-    hsize_t dim(data.size());
-//    hsize_t dim(7);
-    H5::DataSpace vlSpace(1, &dim);
-    H5::VarLenType vlType(&H5::PredType::NATIVE_INT);
-    H5::DataSet dset(group.createDataSet("vlDset", vlType, vlSpace));
-    hvl_t vl[dim]; // Dynamic!?
-    for (hsize_t i = 0; i < dim; ++i)
-    {
-        vl[i].len = data[i].size();
-        vl[i].p = &data[i][0];
-    }
-    dset.write(vl, vlType);
-
-//    hsize_t hcount = 3;
-//    hsize_t hoffset = 1;
-//    dspace.selectHyperslab(H5S_SELECT_SET, &hcount, &hoffset);
-//    dset.write(vl, dtype, H5S_ALL, dspace);
-
-    {
-      hsize_t dimsVL[1]={7};
-      H5::DataSpace vlSpace( 1, dimsVL );
-      H5::DataSet dset = group.createDataSet("vlDset2", vlType, vlSpace);
-      hsize_t coords[1] = {1};
-      vlSpace.selectElements(H5S_SELECT_SET, 1, coords);
-      dset.write( vl, vlType, H5S_ALL, vlSpace );
-    }
-
-    {
-      typedef struct exType {
-       double a;
-       hvl_t vl;
-      } exType;
-
-      // Write a compound type with a VL inside
-      H5::CompType cType( sizeof(exType) );
-      cType.insertMember( "a", HOFFSET(exType, a), H5::PredType::NATIVE_DOUBLE);
-      cType.insertMember( "vl", HOFFSET(exType, vl), vlType);
-
-      exType ex;
-      ex.a = 0.01;
-      ex.vl.len = data[0].size();
-      ex.vl.p = data[0].data();
-      hsize_t dim = 1;
-      H5::DataSpace space(1, &dim);
-      H5::DataSet dset(group.createDataSet("compVlDset", cType, space));
-//      hsize_t coords[1] = {1};
-//      space.selectElements(H5S_SELECT_SET, 1, coords);
-//      dset.write( &ex, cType, H5S_ALL, vlSpace );
-      dset.write( &ex, cType );
-    }
-  }
-
-  // Test: Create array datatype for vectors and matrices
-  {
-    hsize_t arrSize[2] = {2,3};
-    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
-    hsize_t dsetDims[2] = {1,2};
-    H5::DataSpace arrSpace(2,dsetDims);
-    hsize_t coords[2] = {0,0};
-    arrSpace.selectElements(H5S_SELECT_SET, 1, coords);
-    dvo::core::Vector6d vector6;
-    vector6 << 0.1, 100.0, 0.2, 0.3, 0.4, 0.5;
-    double array[6] = {0.1, 100.0, 0.2, 0.3, 0.4, 0.5};
-    H5::DataSet dsetArr = group.createDataSet("dsetArr", arrType, arrSpace);
-    dsetArr.write( vector6.data(), arrType, H5S_ALL, arrSpace );
-  }
+  hsize_t dimsTS[2] = {numOfLevels, pairs.size() - 1};
+  H5::DataSpace fspaceTS( 2, dimsTS );
+  H5::DataSetStream dsetTimeStats(
+        group.createDataSet(
+          "TimeStats",
+          H5::CompTypeTimes(),
+          fspaceTS )
+        );
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
@@ -617,6 +544,7 @@ void BenchmarkNode::run()
 
       // Store results and statistics
       dsetLevelStats << result.Statistics.Levels;
+      dsetTimeStats << result.Statistics.Times;
 
       if(cfg_.EstimateTrajectory)
       {

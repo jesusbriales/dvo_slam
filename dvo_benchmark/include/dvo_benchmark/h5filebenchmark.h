@@ -33,15 +33,15 @@ public:
     ADD_MEMBER(TDistributionLogLikelihood,PredType::NATIVE_DOUBLE);
 
     {
-    hsize_t arrSize[1] = {2};
-    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 1, arrSize);
-    ADD_MEMBER(TDistributionMean,arrType);
+      hsize_t arrSize[1] = {2};
+      H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 1, arrSize);
+      ADD_MEMBER(TDistributionMean,arrType);
     }
 
     {
-    hsize_t arrSize[2] = {6,6};
-    H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
-    ADD_MEMBER(EstimateInformation,arrType);
+      hsize_t arrSize[2] = {6,6};
+      H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
+      ADD_MEMBER(EstimateInformation,arrType);
     }
   }
 };
@@ -58,13 +58,12 @@ struct hLevelStats
   hLevelStats() {}
 
   // Copy constructor from original LevelStats
-  hLevelStats( dvo::DenseTracker::LevelStats& in )
+  hLevelStats( dvo::DenseTracker::LevelStats& in ) :
+    Id(in.Id),
+    MaxValidPixels(in.MaxValidPixels),
+    ValidPixels(in.ValidPixels),
+    SelectedPixels(in.SelectedPixels)
   {
-    Id = in.Id;
-    MaxValidPixels = in.MaxValidPixels;
-    ValidPixels = in.ValidPixels;
-    SelectedPixels = in.SelectedPixels;
-
     Iterations.len = in.Iterations.size();
     Iterations.p = in.Iterations.data();
   }
@@ -72,10 +71,10 @@ struct hLevelStats
 
 // Define new type for LevelStats struct
 #define THIS_TYPE hLevelStats
-class CompTypehLevelStats : public BaseCompType<THIS_TYPE>
+class CompTypeLevelStats : public BaseCompType<THIS_TYPE>
 {
 public:
-  CompTypehLevelStats()
+  CompTypeLevelStats()
   {
     ADD_MEMBER(Id,PredType::NATIVE_UINT);
     ADD_MEMBER(MaxValidPixels,PredType::NATIVE_UINT);
@@ -89,41 +88,52 @@ public:
 };
 #undef THIS_TYPE
 
-// Define new type for LevelStats struct
-#define THIS_TYPE dvo::DenseTracker::LevelStats
-class CompTypeLevelStats : public BaseCompType<THIS_TYPE>
+// Define equivalent class for Stats
+struct hStats
 {
-public:
-  CompTypeLevelStats()
+  hvl_t Levels;
+
+  // Default constructor
+  hStats() {}
+
+  // Copy constructor from original Stats
+  hStats( dvo::DenseTracker::Stats& in )
   {
-    ADD_MEMBER(MaxValidPixels,PredType::NATIVE_INT);
-    ADD_MEMBER(ValidPixels,PredType::NATIVE_INT);
-    ADD_MEMBER(SelectedPixels,PredType::NATIVE_INT);
+    Levels.len = in.Levels.size();
+    Levels.p = in.Levels.data();
   }
 };
-#undef THIS_TYPE
 
-#define THIS_TYPE dvo::DenseTracker::Stats
+#define THIS_TYPE hStats
 class CompTypeStats : public BaseCompType<THIS_TYPE>
 {
 public:
   CompTypeStats()
   {
-    CompTypeLevelStats atomType;
-    VarLenType vec( &atomType );
-
-    ADD_MEMBER(Levels,vec);
-    {
-//    hsize_t arrSize[1] = {3};
-//    H5::ArrayType arrType(CompTypeLevelStats(), 1, arrSize);
-//    ADD_MEMBER(Levels,arrType);
-    }
+    CompTypeLevelStats typeLevelStats;
+    H5::VarLenType vlLevelStats(&typeLevelStats);
+    ADD_MEMBER(Levels,vlLevelStats);
   }
 };
 #undef THIS_TYPE
 
+// Define equivalent class for Result
+struct hResult
+{
+  hStats Statistics;
+
+  // Default constructor
+  hResult() {}
+
+  // Copy constructor from original Stats
+  hResult( dvo::DenseTracker::Result& in ) :
+    Statistics( in.Statistics )
+  {
+  }
+};
+
 // Define new type for Results struct
-#define THIS_TYPE dvo::DenseTracker::Result
+#define THIS_TYPE hResult
 class CompTypeResult : public BaseCompType<THIS_TYPE>
 {
 public:
@@ -147,8 +157,9 @@ public:
     fspace = dset.getSpace();
 
     // Get dimensions to configure the stream
+    hsize_t nDims = fspace.getSimpleExtentNdims();
     std::vector<hsize_t> dims;
-    dims.resize(2);
+    dims.resize(nDims);
     fspace.getSimpleExtentDims( dims.data() );
 
     // Define the layout of data in local memory (vector of variables/structs)
@@ -165,16 +176,6 @@ public:
     fOffset[0] = 0;
     fOffset[1] = 0;
     // 2nd component is the iterator updated after each data-write
-  }
-
-  void push( const dvo::DenseTracker::LevelStats *levelsPtr )
-  {
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    // Write local data to the dataset in the h5 file
-    this->write(levelsPtr, type, mspace, fspace );
   }
 
   void push( dvo::DenseTracker::LevelStatsVector& sv )
@@ -209,6 +210,53 @@ public:
 
     // Write local data to the dataset in the h5 file
     this->write(levelsPtr, type, mspace, fspace );
+  }
+
+  void push( dvo::DenseTracker::LevelStats *levelsPtr )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // Convert to equivalent type?
+    hLevelStats hls[3]; // TODO: Make dynamic
+    for(size_t i=0; i<3; i++)
+    {
+      hls[i] = levelsPtr[i];
+    }
+
+    // Write local data to the dataset in the h5 file
+    this->write( hls, type, mspace, fspace );
+//    this->write(levelsPtr, type, mspace, fspace );
+  }
+
+  void push( dvo::DenseTracker::Result *resultPtr )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+//    fspace.selectElements( H5S_SELECT_SET, 1, fOffset.data() );
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // Convert to equivalent type?
+    hResult hr[1]; // TODO: Make dynamic
+    for(size_t i=0; i<1; i++)
+    {
+      hr[i] = resultPtr[i];
+    }
+
+    // Write local data to the dataset in the h5 file
+//    this->write(hr, type, H5S_ALL, fspace );
+    this->write( hr, type, mspace, fspace );
+  }
+
+  void push( const void* dataPtr )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // Write local data to the dataset in the h5 file
+    this->write(dataPtr, type, mspace, fspace );
   }
 
 public:

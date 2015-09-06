@@ -5,12 +5,21 @@
 
 #include <dvo/dense_tracking.h>
 
+namespace H5
+{
+
+class H5_DLLCPP PredCompType : public CompType
+{
+public:
+  static const CompType IterationStats;
+  static const CompType LevelStats;
+  static const CompType TimeStats;
+  static const CompType Config;
+};
+
 // Useful macro to reduce extension of new types
 #define ADD_MEMBER(name,type) \
   this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
-
-namespace H5
-{
 
 template <class T>
 class BaseCompType : public CompType
@@ -80,20 +89,17 @@ public:
     ADD_MEMBER(MaxValidPixels,PredType::NATIVE_UINT);
     ADD_MEMBER(ValidPixels,PredType::NATIVE_UINT);
     ADD_MEMBER(SelectedPixels,PredType::NATIVE_UINT);
-
-    H5::CompTypeIterationStats typeIterationStats;
-    H5::VarLenType vlIterationStats(&typeIterationStats);
-    ADD_MEMBER(Iterations,vlIterationStats);
+    ADD_MEMBER(Iterations,VarLenType(&PredCompType::IterationStats));
   }
 };
 #undef THIS_TYPE
 
 // Define new type for Times struct
 #define THIS_TYPE dvo::DenseTracker::TimeStats
-class CompTypeTimes : public BaseCompType<THIS_TYPE>
+class CompTypeTimeStats : public BaseCompType<THIS_TYPE>
 {
 public:
-  CompTypeTimes()
+  CompTypeTimeStats()
   {
     ADD_MEMBER(level,PredType::NATIVE_DOUBLE);
     ADD_MEMBER(it,PredType::NATIVE_DOUBLE);

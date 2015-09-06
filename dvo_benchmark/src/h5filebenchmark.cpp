@@ -1,12 +1,9 @@
 #include <dvo_benchmark/h5filebenchmark.h>
 
-//H5FileBenchmark::H5FileBenchmark()
-//{
+using namespace H5;
 
-//}
-
-//H5FileBenchmark::~H5FileBenchmark()
-//{
-
-//}
-
+// Implement predefined instances
+const CompType PredCompType::IterationStats = CompTypeIterationStats();
+const CompType PredCompType::LevelStats = CompTypeLevelStats();
+const CompType PredCompType::TimeStats = CompTypeTimeStats();
+const CompType PredCompType::Config = CompTypeConfig();

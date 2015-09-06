@@ -486,7 +486,7 @@ void BenchmarkNode::run()
   H5::DataSetStream dsetLevelStats(
         group.createDataSet(
           "LevelStats",
-          H5::CompTypeLevelStats(),
+          H5::PredCompType::LevelStats,
           fspaceLS )
         );
   hsize_t dimsTS[2] = {numOfLevels, pairs.size() - 1};
@@ -494,7 +494,7 @@ void BenchmarkNode::run()
   H5::DataSetStream dsetTimeStats(
         group.createDataSet(
           "TimeStats",
-          H5::CompTypeTimes(),
+          H5::PredCompType::TimeStats,
           fspaceTS )
         );
 
@@ -502,7 +502,7 @@ void BenchmarkNode::run()
   hsize_t dimsAttr = 1;
   H5::DataSpace fspaceAttr( 1, &dimsAttr );
   H5::Attribute attr = group.createAttribute(
-        "Config", H5::CompTypeConfig(), fspaceAttr );
+        "Config", H5::PredCompType::Config, fspaceAttr );
   H5::CompTypeConfig attrType;
   attr.write( attrType, &cfg );
 

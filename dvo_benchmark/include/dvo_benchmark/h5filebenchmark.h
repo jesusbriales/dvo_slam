@@ -23,6 +23,7 @@ template <typename T>
 struct hEquivalent;
 
 // Define equivalent struct for LevelStats
+// Needs special treatment of Variable Length vectors
 template <>
 struct hEquivalent<dvo::DenseTracker::LevelStats>
 {
@@ -45,6 +46,10 @@ struct hEquivalent<dvo::DenseTracker::LevelStats>
   }
 };
 
+// Define equivalent struct for TimeStats
+// This does not require special treatment,
+// so a simple inheritance with defined copy constructor
+// does the trick
 template <>
 struct hEquivalent<dvo::DenseTracker::TimeStats>
     : public dvo::DenseTracker::TimeStats
@@ -55,6 +60,21 @@ struct hEquivalent<dvo::DenseTracker::TimeStats>
   // Copy constructor from original LevelStats
   hEquivalent( dvo::DenseTracker::TimeStats& in ) :
     dvo::DenseTracker::TimeStats(in) {}
+};
+
+// TODO: Defined but not tested,
+// I don't know if the special ArrayType inside
+// can have any side effect which requires special adjustment
+template <>
+struct hEquivalent<dvo::DenseTracker::IterationStats>
+    : public dvo::DenseTracker::IterationStats
+{
+  // Default constructor
+  hEquivalent() {}
+
+  // Copy constructor from original LevelStats
+  hEquivalent( dvo::DenseTracker::IterationStats& in ) :
+    dvo::DenseTracker::IterationStats(in) {}
 };
 
 // Useful macro to reduce extension of new types
@@ -95,30 +115,8 @@ struct CompTypeIterationStats : BaseCompType<THIS_TYPE>
 };
 #undef THIS_TYPE
 
-// Define equivalent class for LevelStats
-struct hLevelStats
-{
-  size_t Id, MaxValidPixels, ValidPixels, SelectedPixels;
-
-  hvl_t Iterations;
-
-  // Default constructor
-  hLevelStats() {}
-
-  // Copy constructor from original LevelStats
-  hLevelStats( dvo::DenseTracker::LevelStats& in ) :
-    Id(in.Id),
-    MaxValidPixels(in.MaxValidPixels),
-    ValidPixels(in.ValidPixels),
-    SelectedPixels(in.SelectedPixels)
-  {
-    Iterations.len = in.Iterations.size();
-    Iterations.p = in.Iterations.data();
-  }
-};
-
 // Define new type for LevelStats struct
-#define THIS_TYPE hLevelStats
+#define THIS_TYPE hEquivalent<dvo::DenseTracker::LevelStats>
 struct CompTypeLevelStats : BaseCompType<THIS_TYPE>
 {
   CompTypeLevelStats()

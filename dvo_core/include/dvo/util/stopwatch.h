@@ -49,13 +49,6 @@ public:
   {
   }
 
-  ~stopwatch()
-  {
-    // Print stopwatch value when the object is deleted
-    // (this is at the end of the program if the object is declared static)
-    print();
-  }
-
   inline void start()
   {
     begin = cv::getTickCount();
@@ -70,24 +63,37 @@ public:
     count++;
   }
 
-  inline void print()
+  inline double compute()
   {
-    double m = mean(acc);
-    std::cerr  << name << ": " << m << std::endl;
+    return mean(acc);
   }
 
+  inline void reset()
+  {
+    acc = accumulator_set<double, stats<tag::mean> >();
+    count = 0;
+  }
 
-  inline void stopAndPrint()
+  inline void print()
+  {
+    std::cerr  << name << ": " << compute() << std::endl;
+  }
+
+  inline void stopPrintAndReset()
   {
     stop();
     if(count == interval)
     {
       print();
-
-      // reset
-      acc = accumulator_set<double, stats<tag::mean> >();
-      count = 0;
+      reset();
     }
+  }
+
+  inline double computeAndReset()
+  {
+    double meanValue = compute();
+    reset();
+    return meanValue;
   }
 };
 

@@ -113,6 +113,13 @@ class CompTypeConfig : public BaseCompType<THIS_TYPE>
 public:
   CompTypeConfig()
   {
+    // Note: Bool variables are stored into NATIVE_UCHAR (1 byte)
+    // BUT there is not standard specification for BOOL size,
+    // so take care in different machines
+    // TODO: Trying to assert but sizeof is giving 1 and 16, why?
+//    assert(sizeof(bool) == sizeof(PredType::NATIVE_UCHAR) &&
+//           "Bool size is not the same as uchar in this machine, correct bool types");
+
     ADD_MEMBER(FirstLevel,PredType::NATIVE_INT);
     ADD_MEMBER(LastLevel,PredType::NATIVE_INT);
     ADD_MEMBER(MaxIterationsPerLevel,PredType::NATIVE_INT);

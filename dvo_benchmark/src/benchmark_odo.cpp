@@ -48,34 +48,11 @@
 #include <H5Cpp.h>
 #include <dvo_benchmark/h5filebenchmark.h>
 
-H5::DataSetStream& operator<< (
-    H5::DataSetStream& dset,
-    dvo::DenseTracker::LevelStatsVector& sv )
+template<typename T>
+H5::DataSetStream& operator<< (H5::DataSetStream& dset, std::vector<T>& vec )
 {
   // Use class internal method to write and increment iterator
-  dset.push( sv.data() );
-
-  // Return the same lhs object to chain operations if wanted
-  return dset;
-}
-
-H5::DataSetStream& operator<< (
-    H5::DataSetStream& dset,
-    dvo::DenseTracker::TimeStatsVector& sv )
-{
-  // Use class internal method to write and increment iterator
-  dset.push( sv.data() );
-
-  // Return the same lhs object to chain operations if wanted
-  return dset;
-}
-
-H5::DataSetStream& operator<< (
-    H5::DataSetStream& dset,
-    const dvo::DenseTracker::IterationStatsVector& sv )
-{
-  // Use class internal method to write and increment iterator
-  dset.push( sv.data() );
+  dset.push( vec.data() );
 
   // Return the same lhs object to chain operations if wanted
   return dset;

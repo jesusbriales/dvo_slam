@@ -449,32 +449,27 @@ void BenchmarkNode::run()
   H5::DataSetStream dsetLevelStats(
         group.createDataSet2D(
           "LevelStats",
-          H5::PredCompType::LevelStats,
+          H5::MyPredType::LevelStats,
           numOfLevels, pairs.size() - 1 )
         );
   H5::DataSetStream dsetTimeStats(
         group.createDataSet2D(
           "TimeStats",
-          H5::PredCompType::TimeStats,
+          H5::MyPredType::TimeStats,
           numOfLevels, pairs.size() - 1 )
         );
-  hsize_t arrSize[2] = {4,4};
-  H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
   H5::DataSetStream dsetTraj(
         group.createDataSet2D(
           "Trajectory",
-          arrType,
+          H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
           1, pairs.size() )
         );
   dsetTraj << trajectory;
 
   // Store attributes of the current experiment
-  hsize_t dimsAttr = 1;
-  H5::DataSpace fspaceAttr( 1, &dimsAttr );
   H5::Attribute attr = group.createAttribute(
-        "Config", H5::PredCompType::Config, fspaceAttr );
-  H5::CompTypeConfig attrType;
-  attr.write( attrType, &cfg );
+        "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
+  attr.write( H5::MyPredType::Config, &cfg );
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();

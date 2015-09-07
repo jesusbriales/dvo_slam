@@ -7,14 +7,22 @@
 namespace H5
 {
 
-class H5_DLLCPP PredCompType : public CompType
+// Declare set of proper types useful for the benchmark
+class H5_DLLCPP MyPredType : public DataType
 {
 public:
+  // Compound types (equivalent to structures)
   static const CompType IterationStats;
   static const CompType LevelStats;
   static const CompType TimeStats;
   static const CompType Config;
+
+  // Array types (equivalent to matrices)
+//  static const ArrayType Matrix4d;
 };
+
+// Declare method to create 2D arrays
+ArrayType createArrayType2D(const DataType&, hsize_t, hsize_t);
 
 // Declare the necessary equivalent types
 DECLARE_EQUIVALENT_TYPE(dvo::DenseTracker::LevelStats)

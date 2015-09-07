@@ -3,10 +3,18 @@
 using namespace H5;
 
 // Implement predefined instances
-const CompType PredCompType::IterationStats = CompTypeIterationStats();
-const CompType PredCompType::LevelStats = CompTypeLevelStats();
-const CompType PredCompType::TimeStats = CompTypeTimeStats();
-const CompType PredCompType::Config = CompTypeConfig();
+const CompType MyPredType::IterationStats = CompTypeIterationStats();
+const CompType MyPredType::LevelStats = CompTypeLevelStats();
+const CompType MyPredType::TimeStats = CompTypeTimeStats();
+const CompType MyPredType::Config = CompTypeConfig();
+
+//const ArrayType MyPredType::Matrix4d = createArrayType<PredType::NATIVE_DOUBLE>(4,4);
+
+ArrayType H5::createArrayType2D(const DataType& base_type, hsize_t rows, hsize_t cols)
+{
+  hsize_t arrSize[2] = {rows,cols};
+  return ArrayType(base_type, 2, arrSize);
+}
 
 // Define new type for IterationStats struct
 #define THIS_TYPE dvo::DenseTracker::IterationStats
@@ -38,7 +46,7 @@ CompTypeLevelStats::CompTypeLevelStats()
   ADD_MEMBER(MaxValidPixels,PredType::NATIVE_UINT);
   ADD_MEMBER(ValidPixels,PredType::NATIVE_UINT);
   ADD_MEMBER(SelectedPixels,PredType::NATIVE_UINT);
-  ADD_MEMBER(Iterations,VarLenType(&PredCompType::IterationStats));
+  ADD_MEMBER(Iterations,VarLenType(&MyPredType::IterationStats));
 }
 #undef THIS_TYPE
 

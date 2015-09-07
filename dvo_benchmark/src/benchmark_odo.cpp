@@ -48,10 +48,8 @@
 #include <H5Cpp.h>
 #include <dvo_benchmark/h5filebenchmark.h>
 
-//template<typename T>
-//H5::DataSetStream& operator<< (H5::DataSetStream& dset, std::vector<T>& vec )
 template<typename T>
-H5::DataSetStream<T>& operator<< (H5::DataSetStream<T>& dset, std::vector<T>& vec )
+H5::DataSetStream& operator<< (H5::DataSetStream& dset, std::vector<T>& vec )
 {
   // Use class internal method to write and increment iterator
   dset.push( vec.data() );
@@ -462,7 +460,7 @@ void BenchmarkNode::run()
   size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
   hsize_t dimsLS[2] = {numOfLevels, pairs.size() - 1};
   H5::DataSpace fspaceLS( 2, dimsLS );
-  H5::DataSetStream<dvo::DenseTracker::LevelStats> dsetLevelStats(
+  H5::DataSetStream dsetLevelStats(
         group.createDataSet(
           "LevelStats",
           H5::PredCompType::LevelStats,
@@ -470,7 +468,7 @@ void BenchmarkNode::run()
         );
   hsize_t dimsTS[2] = {numOfLevels, pairs.size() - 1};
   H5::DataSpace fspaceTS( 2, dimsTS );
-  H5::DataSetStream<dvo::DenseTracker::TimeStats> dsetTimeStats(
+  H5::DataSetStream dsetTimeStats(
         group.createDataSet(
           "TimeStats",
           H5::PredCompType::TimeStats,

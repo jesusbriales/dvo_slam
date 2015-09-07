@@ -121,8 +121,7 @@ struct CompTypeConfig
 };
 
 
-// Template class for streaming in DataSet
-template <typename T>
+// Class for streaming in DataSet
 class DataSetStream : public DataSet
 {
 public:
@@ -155,6 +154,7 @@ public:
     // 2nd component is the iterator updated after each data-write
   }
 
+  template<typename T>
   void push( T *dataPtr )
   {
     // Select slab in the file space

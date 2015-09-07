@@ -2,9 +2,11 @@
 
 using namespace H5;
 
-// Useful macro to reduce extension of new types
-#define ADD_MEMBER(name,type) \
-  this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
+// Implement predefined instances
+const CompType PredCompType::IterationStats = CompTypeIterationStats();
+const CompType PredCompType::LevelStats = CompTypeLevelStats();
+const CompType PredCompType::TimeStats = CompTypeTimeStats();
+const CompType PredCompType::Config = CompTypeConfig();
 
 // Define new type for IterationStats struct
 #define THIS_TYPE dvo::DenseTracker::IterationStats
@@ -84,10 +86,3 @@ CompTypeConfig::CompTypeConfig()
   ADD_MEMBER(SamplerType,PredType::NATIVE_INT);
 }
 #undef THIS_TYPE
-
-
-// Implement predefined instances
-const CompType PredCompType::IterationStats = CompTypeIterationStats();
-const CompType PredCompType::LevelStats = CompTypeLevelStats();
-const CompType PredCompType::TimeStats = CompTypeTimeStats();
-const CompType PredCompType::Config = CompTypeConfig();

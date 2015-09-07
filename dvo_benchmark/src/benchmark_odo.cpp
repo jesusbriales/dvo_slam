@@ -442,35 +442,29 @@ void BenchmarkNode::run()
   dvo::core::RgbdImagePyramid::Ptr reference, current;
 
   // Create HDF5 file for the experiment
-  H5::H5File  file( "benchmark.h5", H5F_ACC_TRUNC );
-  H5::Group   group( file.createGroup( "this_experiment") );
+  H5::H5File file( "benchmark.h5", H5F_ACC_TRUNC );
+  H5::EGroup group( file.createGroup( "this_experiment") );
   // Take dimension from current configuration
   size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
-  hsize_t dimsLS[2] = {numOfLevels, pairs.size() - 1};
-  H5::DataSpace fspaceLS( 2, dimsLS );
   H5::DataSetStream dsetLevelStats(
-        group.createDataSet(
+        group.createDataSet2D(
           "LevelStats",
           H5::PredCompType::LevelStats,
-          fspaceLS )
+          numOfLevels, pairs.size() - 1 )
         );
-  hsize_t dimsTS[2] = {numOfLevels, pairs.size() - 1};
-  H5::DataSpace fspaceTS( 2, dimsTS );
   H5::DataSetStream dsetTimeStats(
-        group.createDataSet(
+        group.createDataSet2D(
           "TimeStats",
           H5::PredCompType::TimeStats,
-          fspaceTS )
+          numOfLevels, pairs.size() - 1 )
         );
-  hsize_t dimsTraj[2] = {1, pairs.size()};
-  H5::DataSpace fspaceTraj( 2, dimsTraj );
   hsize_t arrSize[2] = {4,4};
   H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
   H5::DataSetStream dsetTraj(
-        group.createDataSet(
+        group.createDataSet2D(
           "Trajectory",
           arrType,
-          fspaceTraj )
+          1, pairs.size() )
         );
   dsetTraj << trajectory;
 

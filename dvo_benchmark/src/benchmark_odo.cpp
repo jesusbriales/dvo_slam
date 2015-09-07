@@ -109,6 +109,9 @@ public:
 
     std::string RgbdPairFile;
     std::string GroundtruthFile;
+    std::string Hdf5File;
+    std::string Hdf5Group;
+    std::string Hdf5Subgroup;
 
     bool ShowGroundtruth;
     bool ShowEstimate;
@@ -117,6 +120,18 @@ public:
 
     bool EstimateRequired();
     bool VisualizationRequired();
+  };
+
+  struct Storage
+  {
+    H5::H5File file;
+    H5::EGroup mainGroup;
+    H5::EGroup minorGroup;
+
+    // Default empty constructor
+    Storage( ) {}
+    // Constructor from file and group data
+    Storage( const std::string& file, const std::string& mainGroup, const std::string& minorGroup );
   };
 
   BenchmarkNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private);
@@ -133,6 +148,7 @@ public:
 private:
   ros::NodeHandle &nh_, nh_vis_, &nh_private_;
   Config cfg_;
+  Storage store_;
 
   std::ostream *trajectory_out_;
   dvo_benchmark::FileReader<dvo_benchmark::Groundtruth> *groundtruth_reader_;
@@ -243,7 +259,65 @@ bool BenchmarkNode::configure()
   nh_private_.param("show_estimate", cfg_.ShowEstimate, false);
   nh_private_.param("keep_alive", cfg_.KeepAlive, cfg_.VisualizationRequired());
 
+  // hdf5 storage stuff
+  if( nh_private_.getParam("hdf5_file", cfg_.Hdf5File) )
+  {
+    nh_private_.getParam("hdf5_group", cfg_.Hdf5Group);
+    nh_private_.getParam("hdf5_subgroup", cfg_.Hdf5Subgroup);
+    store_ = Storage(cfg_.Hdf5File,cfg_.Hdf5Group,cfg_.Hdf5Subgroup);
+  }
+
   return true;
+}
+
+BenchmarkNode::Storage::Storage(
+    const std::string& file_path,
+    const std::string& main_group,
+    const std::string& minor_group)
+{
+  // Use a global try to answer unexpected behaviour
+  try {
+    // Turn off exception printing to handle exceptions by ourselves
+    H5::Exception::dontPrint();
+
+    try {
+      // Open HDF5 file for the experiment
+      file = H5::H5File( file_path.c_str(), H5F_ACC_RDWR );
+    }
+    catch( H5::FileIException not_found_error ) {
+      // If not openable because it does not exist,
+      // create a new file (overwriting)
+      file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
+    }
+
+    try {
+      // Open the main group
+      mainGroup = file.openGroup( main_group.c_str() );
+    }
+    catch( H5::FileIException not_found_error ) {
+      // If failed because this is the first time for this group,
+      // create it
+      mainGroup = file.createGroup( main_group.c_str() );
+    }
+
+    try {
+      // Create the minor group for the experiment sample
+      minorGroup = mainGroup.createGroup( minor_group.c_str() );
+//      minorGroup = mainGroup.openGroup( minor_group.c_str() );
+    }
+    catch( H5::GroupIException already_created ) {
+      // If failed, tell the user (an experiment sample should not need to be repeated)
+      std::cerr << "----------------------------------------------------------------------------" << std::endl
+                << "HDF5 Error: The subgroup is for a single experiment and should not be reused" << std::endl
+                << "----------------------------------------------------------------------------" << std::endl;
+      already_created.printError();
+      std::terminate();
+    }
+  }
+  catch (...) // TODO: Implement exception catching
+  {
+    std::cerr << "Some unexpected error occurred while setting HDF5 storage" << std::endl;
+  }
 }
 
 void BenchmarkNode::renderWhileSwitchAndNotTerminated(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer, const dvo::visualization::Switch& s)
@@ -352,20 +426,6 @@ void BenchmarkNode::createReferenceCamera(dvo::visualization::CameraTrajectoryVi
       show();
 }
 
-// Temporary struct to test HDF5
-struct type_a
-{
-  type_a(): a(15.3f), b(2), c('a') {}
-  void doSth( void ) { std::cout << "Hello!" << std::endl; }
-  float a;
-  int b;
-  char c;
-} ;
-typedef struct {
-  double d;
-  type_a s;
-} type_b;
-
 void BenchmarkNode::run()
 {
   // setup visualizer
@@ -417,6 +477,18 @@ void BenchmarkNode::run()
 
   ROS_WARN_STREAM_NAMED("config", "config: \"" << cfg << "\"");
 
+  // Store attributes of the current experiment
+  try {
+    // Create the attribute to write the configuration in the main group
+    H5::Attribute attr = store_.mainGroup.createAttribute(
+          "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
+    attr.write( H5::MyPredType::Config, &cfg );
+  }
+  catch (...)
+  { // If failed because the attribute was already written, do nothing
+    // Take care that the main group is shared for experiment samples with the SAME configuration
+  }
+
   // setup tracker
   dvo::DenseTracker dense_tracker(cfg);
   camera.build(cfg.getNumLevels());
@@ -439,39 +511,31 @@ void BenchmarkNode::run()
   std::vector<dvo_benchmark::RgbdPair> pairs;
   rgbdpair_reader_->readAllEntries(pairs);
 
-  dvo::core::RgbdImagePyramid::Ptr reference, current;
 
-  // Create HDF5 file for the experiment
-  H5::H5File file( "benchmark.h5", H5F_ACC_TRUNC );
-  H5::EGroup group( file.createGroup( "this_experiment") );
+  // Setup datasets for storage in HDF5
   // Take dimension from current configuration
   size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
-  H5::DataSetStream dsetLevelStats(
-        group.createDataSet2D(
-          "LevelStats",
-          H5::MyPredType::LevelStats,
-          numOfLevels, pairs.size() - 1 )
-        );
-  H5::DataSetStream dsetTimeStats(
-        group.createDataSet2D(
-          "TimeStats",
-          H5::MyPredType::TimeStats,
-          numOfLevels, pairs.size() - 1 )
-        );
-  H5::DataSetStream dsetTraj(
-        group.createDataSet2D(
-          "Trajectory",
-          H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
-          1, pairs.size() )
-        );
-  dsetTraj << trajectory;
+  H5::DataSetStream dsetLevelStats = store_.minorGroup.createDataSet2D(
+        "LevelStats",
+        H5::MyPredType::LevelStats,
+        numOfLevels, pairs.size() - 1 );
+  H5::DataSetStream dsetTimeStats = store_.minorGroup.createDataSet2D(
+        "TimeStats",
+        H5::MyPredType::TimeStats,
+        numOfLevels, pairs.size() - 1 );
+  H5::DataSetStream dsetTrajPoses = store_.minorGroup.createDataSet2D(
+        "Trajectory",
+        H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
+        1, pairs.size() );
+  H5::DataSetStream dsetTrajEval = store_.minorGroup.createDataSet2D(
+        "TrajectoryTUM",
+        H5::PredType::NATIVE_DOUBLE,
+        8, pairs.size() - 1 );
+
   // Save first trajectory pose (identity by default)
   dsetTrajPoses << trajectory.data();
 
-  // Store attributes of the current experiment
-  H5::Attribute attr = group.createAttribute(
-        "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
-  attr.write( H5::MyPredType::Config, &cfg );
+  dvo::core::RgbdImagePyramid::Ptr reference, current;
 
   dvo::util::stopwatch sw_online("online", 1), sw_postprocess("postprocess", 1);
   sw_online.start();
@@ -536,6 +600,15 @@ void BenchmarkNode::run()
             << q.z() << " "
             << q.w() << " "
             << std::endl;
+
+        // Store as dataset of the .h5 file too
+        Eigen::Matrix<double,8,1> traj;
+        traj << it->RgbTimestamp().toSec(),
+                trajectory.translation()(0),
+                trajectory.translation()(1),
+                trajectory.translation()(2),
+                q.x(), q.y(), q.z(), q.w();
+        dsetTrajEval << traj.data();
       }
 
       if(cfg_.ShowEstimate)

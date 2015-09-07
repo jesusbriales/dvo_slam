@@ -462,6 +462,17 @@ void BenchmarkNode::run()
           H5::PredCompType::TimeStats,
           fspaceTS )
         );
+  hsize_t dimsTraj[2] = {1, pairs.size()};
+  H5::DataSpace fspaceTraj( 2, dimsTraj );
+  hsize_t arrSize[2] = {4,4};
+  H5::ArrayType arrType(H5::PredType::NATIVE_DOUBLE, 2, arrSize);
+  H5::DataSetStream dsetTraj(
+        group.createDataSet(
+          "Trajectory",
+          arrType,
+          fspaceTraj )
+        );
+  dsetTraj << trajectory;
 
   // Store attributes of the current experiment
   hsize_t dimsAttr = 1;
@@ -518,6 +529,7 @@ void BenchmarkNode::run()
       // Store results and statistics
       dsetLevelStats << result.Statistics.Levels;
       dsetTimeStats << result.Statistics.Times;
+      dsetTraj << trajectory;
 
       if(cfg_.EstimateTrajectory)
       {

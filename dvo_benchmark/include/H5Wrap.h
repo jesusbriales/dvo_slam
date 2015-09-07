@@ -65,6 +65,9 @@ public:
 class EGroup : public Group
 {
 public:
+  // Default constructor
+  EGroup( ) : Group() {}
+
   // Default copy constructor from original parent
   EGroup( const Group& original ) : Group(original) {}
 
@@ -87,6 +90,10 @@ public:
 class DataSetStream : public DataSet
 {
 public:
+  // Default constructor
+  DataSetStream( ) : DataSet() {}
+
+  // Constructor from a defined DataSet
   DataSetStream( const DataSet& dset ) :
     DataSet(dset), idx(0)
   {

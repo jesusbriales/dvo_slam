@@ -7,7 +7,7 @@ using namespace H5;
   this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
 
 // Define new type for IterationStats struct
-#define THIS_TYPE hEquivalent<dvo::DenseTracker::IterationStats>
+#define THIS_TYPE dvo::DenseTracker::IterationStats
 CompTypeIterationStats::CompTypeIterationStats()
 {
   ADD_MEMBER(Id,PredType::NATIVE_INT);
@@ -41,7 +41,7 @@ CompTypeLevelStats::CompTypeLevelStats()
 #undef THIS_TYPE
 
 // Define new type for Times struct
-#define THIS_TYPE hEquivalent<dvo::DenseTracker::TimeStats>
+#define THIS_TYPE dvo::DenseTracker::TimeStats
 CompTypeTimeStats::CompTypeTimeStats()
 {
   ADD_MEMBER(level,PredType::NATIVE_DOUBLE);

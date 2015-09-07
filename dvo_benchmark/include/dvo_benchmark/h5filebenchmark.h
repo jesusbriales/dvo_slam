@@ -17,19 +17,34 @@ public:
   static const CompType Config;
 };
 
+template <typename T>
+struct needs_equivalent
+{
+  static const bool flag = false;
+};
+
 // Define equivalent H5 structs as a template
 // for better generalization
 template <typename T>
-struct hEquivalent;
+struct hEquivalent {
+  // Define empty operators for compatibility
+  // TODO: Search alternative to this
+  hEquivalent() {}
+  hEquivalent(const T&) {}
+
+};
+
+#define DECLARE_EQUIVALENT_TYPE(type) \
+template <> struct needs_equivalent<type> \
+{ \
+  static const bool flag = true; \
+}; \
+template <> struct hEquivalent<type>;
 
 // Declare all equivalent types
-template <> struct hEquivalent<dvo::DenseTracker::IterationStats>;
-template <> struct hEquivalent<dvo::DenseTracker::LevelStats>;
-template <> struct hEquivalent<dvo::DenseTracker::TimeStats>;
+DECLARE_EQUIVALENT_TYPE(dvo::DenseTracker::LevelStats)
 
 // TODO: Short macros could be defined so that
-// - The equivalent type inherits from the original one
-//   H5_EQUIVALENT_COPY(typename)
 // - If specific changes must be done, set a macro for it
 //   H5_EQUIVALENT_VL(typename,varnames_with_VL)
 
@@ -57,38 +72,6 @@ struct hEquivalent<dvo::DenseTracker::LevelStats>
   }
 };
 
-// Define equivalent struct for TimeStats
-// This does not require special treatment,
-// so a simple inheritance with defined copy constructor
-// does the trick
-template <>
-struct hEquivalent<dvo::DenseTracker::TimeStats>
-    : public dvo::DenseTracker::TimeStats
-{
-  // Default constructor
-  hEquivalent() {}
-
-  // Copy constructor from original LevelStats
-  hEquivalent( dvo::DenseTracker::TimeStats& in ) :
-    dvo::DenseTracker::TimeStats(in) {}
-};
-
-// TODO: Defined but not tested,
-// I don't know if the special ArrayType inside
-// can have any side effect which requires special adjustment
-template <>
-struct hEquivalent<dvo::DenseTracker::IterationStats>
-    : public dvo::DenseTracker::IterationStats
-{
-  // Default constructor
-  hEquivalent() {}
-
-  // Copy constructor from original LevelStats
-  hEquivalent( dvo::DenseTracker::IterationStats& in ) :
-    dvo::DenseTracker::IterationStats(in) {}
-};
-
-
 // Declare all H5 custom compound types
 template <class T>
 struct BaseCompType : public CompType
@@ -100,7 +83,7 @@ public:
 };
 
 struct CompTypeIterationStats
-    : BaseCompType<hEquivalent<dvo::DenseTracker::IterationStats>>
+    : BaseCompType<dvo::DenseTracker::IterationStats>
 {
   CompTypeIterationStats();
 };
@@ -110,7 +93,7 @@ struct CompTypeLevelStats
   CompTypeLevelStats();
 };
 struct CompTypeTimeStats
-    : BaseCompType<hEquivalent<dvo::DenseTracker::TimeStats>>
+    : BaseCompType<dvo::DenseTracker::TimeStats>
 {
   CompTypeTimeStats();
 };
@@ -163,17 +146,23 @@ public:
 
     // TODO: Be aware of dimensions
     // TODO: Could this be overloaded for vector objects and non-vector?
-    // Convert to H5 compatible type
-    std::vector<hEquivalent<T>> htype_vector;
-    size_t dimData = fSlice[0];
-    htype_vector.resize( dimData );
-    for(size_t i=0; i<dimData; i++)
+    // TODO: Try to template this
+    if(needs_equivalent<T>::flag)
     {
-      htype_vector[i] = dataPtr[i];
-    }
+      // Convert to H5 compatible type
+      std::vector<hEquivalent<T>> htype_vector;
+      size_t dimData = fSlice[0];
+      htype_vector.resize( dimData );
+      for(size_t i=0; i<dimData; i++)
+      {
+        htype_vector[i] = dataPtr[i];
+      }
 
-    // Write local data to the dataset in the h5 file
-    this->write( htype_vector.data(), type, mspace, fspace );
+      // Write local data to the dataset in the h5 file
+      this->write( htype_vector.data(), type, mspace, fspace );
+    }
+    else
+      this->write( dataPtr, type, mspace, fspace );
   }
 
 public:
@@ -191,3 +180,4 @@ public:
 } // end H5 namespace
 
 #endif // H5FILEBENCHMARK_H
+

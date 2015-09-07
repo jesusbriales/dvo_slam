@@ -465,6 +465,8 @@ void BenchmarkNode::run()
           1, pairs.size() )
         );
   dsetTraj << trajectory;
+  // Save first trajectory pose (identity by default)
+  dsetTrajPoses << trajectory.data();
 
   // Store attributes of the current experiment
   H5::Attribute attr = group.createAttribute(
@@ -518,7 +520,7 @@ void BenchmarkNode::run()
       // Store results and statistics
       dsetLevelStats << result.Statistics.Levels;
       dsetTimeStats << result.Statistics.Times;
-      dsetTraj << trajectory;
+      dsetTrajPoses << trajectory.data();
 
       if(cfg_.EstimateTrajectory)
       {

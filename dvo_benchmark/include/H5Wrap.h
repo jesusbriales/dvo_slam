@@ -182,17 +182,6 @@ public:
       this->write( vec.data(), type, mspace, fspace );
   }
 
-  // Push method for single variables
-  template<typename T>
-  void push( const T& value)
-  {
-    // Select slab in the file space
-    fOffset[1] = idx++;
-    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
-
-    this->write( &value, type, mspace, fspace );
-  }
-
 public:
   // Parameters to control the position in file to write
   size_t idx; // Iterator for the stream (incremented after each push)

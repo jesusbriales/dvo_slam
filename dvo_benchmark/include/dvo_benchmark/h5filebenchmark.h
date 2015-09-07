@@ -26,13 +26,13 @@ struct hEquivalent<dvo::DenseTracker::LevelStats>
 {
   size_t Id, MaxValidPixels, ValidPixels, SelectedPixels;
 
-  hvl_t Iterations;
+  hvlconst_t Iterations;
 
   // Default constructor
   hEquivalent() {}
 
   // Copy constructor from original LevelStats
-  hEquivalent( dvo::DenseTracker::LevelStats& in ) :
+  hEquivalent( const dvo::DenseTracker::LevelStats& in ) :
     Id(in.Id),
     MaxValidPixels(in.MaxValidPixels),
     ValidPixels(in.ValidPixels),

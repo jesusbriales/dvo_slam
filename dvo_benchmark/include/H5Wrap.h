@@ -4,6 +4,14 @@
 #include <H5Cpp.h>
 #include <vector>
 
+// Public type as in the original hvl_t in H5Tpublic.h
+/* Variable Length Datatype struct in memory */
+// (This overloads the default definition by H5 to have pointers to non-modifiable memory)
+typedef struct {
+    size_t len; /* Length of VL data (in base type units) */
+    const void *p;    /* Pointer to VL data */
+} hvlconst_t;
+
 namespace H5
 {
 
@@ -91,7 +99,7 @@ public:
   // Push method for vector of variables
   // represented by its first component's pointer
   template<typename T>
-  void push( T *dataPtr )
+  void push( const T *dataPtr )
   {
     // Select slab in the file space
     fOffset[1] = idx++;
@@ -120,7 +128,7 @@ public:
 
   // Push method for vectors of variables
   template<typename T>
-  void push( std::vector<T>& vec )
+  void push( const std::vector<T>& vec )
   {
     // Select slab in the file space
     fOffset[1] = idx++;
@@ -149,7 +157,7 @@ public:
 
   // Push method for single variables
   template<typename T>
-  void push( T& value)
+  void push( const T& value)
   {
     // Select slab in the file space
     fOffset[1] = idx++;
@@ -172,7 +180,7 @@ public:
 
 // Overload operator<< to simulate stream with strings
 template<typename T>
-DataSetStream& operator<< (DataSetStream& dset, T& value)
+DataSetStream& operator<< (DataSetStream& dset, const T& value)
 {
   // Use class internal method to write and increment iterator
   dset.push( value );

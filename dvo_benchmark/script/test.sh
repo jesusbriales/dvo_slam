@@ -13,9 +13,9 @@ statistics_size=5
 for ratio in ${sampling_ratios[@]}
 	do
 		current_date=`date +%Y-%m-%d-%H%M%S`
-		exp_dir="${results_dir}/${current_date}"
-		mkdir $exp_dir
-		cd $exp_dir
+		experiment_dir="${results_dir}/${current_date}"
+		mkdir $experiment_dir
+		cd $experiment_dir
 		for (( exp_idx=1; exp_idx<=$statistics_size; exp_idx++ ))
 		do
 			current_traj_file="${PWD}/trajectory_${exp_idx}.txt"

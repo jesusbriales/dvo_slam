@@ -88,6 +88,8 @@ public:
     // 2nd component is the iterator updated after each data-write
   }
 
+  // Push method for vector of variables
+  // represented by its first component's pointer
   template<typename T>
   void push( T *dataPtr )
   {
@@ -116,6 +118,46 @@ public:
       this->write( dataPtr, type, mspace, fspace );
   }
 
+  // Push method for vectors of variables
+  template<typename T>
+  void push( std::vector<T>& vec )
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    // TODO: Be aware of dimensions
+    // TODO: Could this be overloaded for vector objects and non-vector?
+    // TODO: Try to template this
+    if(needs_equivalent<T>::flag)
+    {
+      // Convert to H5 compatible type
+      std::vector<hEquivalent<T>> htype_vector;
+      size_t dimData = fSlice[0];
+      htype_vector.resize( dimData );
+      for(size_t i=0; i<dimData; i++)
+      {
+        htype_vector[i] = vec[i];
+      }
+
+      // Write local data to the dataset in the h5 file
+      this->write( htype_vector.data(), type, mspace, fspace );
+    }
+    else
+      this->write( vec.data(), type, mspace, fspace );
+  }
+
+  // Push method for single variables
+  template<typename T>
+  void push( T& value)
+  {
+    // Select slab in the file space
+    fOffset[1] = idx++;
+    fspace.selectHyperslab( H5S_SELECT_SET, fSlice.data(), fOffset.data() );
+
+    this->write( &value, type, mspace, fspace );
+  }
+
 public:
   // Parameters to control the position in file to write
   size_t idx; // Iterator for the stream (incremented after each push)
@@ -127,6 +169,17 @@ public:
   DataSpace mspace;
   DataSpace fspace;
 };
+
+// Overload operator<< to simulate stream with strings
+template<typename T>
+DataSetStream& operator<< (DataSetStream& dset, T& value)
+{
+  // Use class internal method to write and increment iterator
+  dset.push( value );
+
+  // Return the same lhs object to chain operations if wanted
+  return dset;
+}
 
 } // end H5 namespace
 

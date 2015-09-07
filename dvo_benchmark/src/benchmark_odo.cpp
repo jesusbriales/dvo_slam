@@ -43,20 +43,8 @@
 #include <dvo_benchmark/groundtruth.h>
 #include <dvo_benchmark/tools.h>
 
-//#include <hdf5.h>
-//#include <hdf5_hl.h>
 #include <H5Cpp.h>
 #include <dvo_benchmark/h5filebenchmark.h>
-
-template<typename T>
-H5::DataSetStream& operator<< (H5::DataSetStream& dset, std::vector<T>& vec )
-{
-  // Use class internal method to write and increment iterator
-  dset.push( vec.data() );
-
-  // Return the same lhs object to chain operations if wanted
-  return dset;
-}
 
 dvo::core::RgbdImagePyramidPtr load(dvo::core::RgbdCameraPyramid& camera, std::string rgb_file, std::string depth_file)
 {

@@ -61,6 +61,26 @@ public:
 #define ADD_MEMBER(name,type) \
   this->insertMember( #name, HOFFSET(THIS_TYPE,name),type)
 
+// Extend H5Cpp classes for convenient methods
+class EGroup : public Group
+{
+public:
+  // Default copy constructor from original parent
+  EGroup( const Group& original ) : Group(original) {}
+
+  DataSet createDataSet2D(
+      const std::string& dsetName,
+      const DataType& dataType,
+      size_t width, size_t length)
+  {
+    // Set dataset internal configuration
+    hsize_t dims[2] = {width, length};
+    H5::DataSpace fspace( 2, dims );
+
+    return Group::createDataSet( dsetName.c_str(), dataType, fspace );
+  }
+};
+
 // Class for streaming in 2D DataSet
 // The 1st (row) dimension is the width of the stream,
 // while stream or stack occurs in the 2nd (column) dimension

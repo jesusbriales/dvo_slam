@@ -124,11 +124,13 @@ public:
   struct Storage
   {
     H5::H5File file;
-    H5::Group mainGroup;
-    H5::EGroup minorGroup;
+    H5::EGroup group;
 
     // Default empty constructor
-    Storage( ) {}
+    Storage( )
+    {
+      group = H5::EGroup();
+    }
     // Constructor from file and group data
     Storage(const std::string& file, const std::string& group_path);
   };
@@ -268,6 +270,22 @@ bool BenchmarkNode::configure()
   return true;
 }
 
+template <typename T>
+H5::Group openOrCreateGroup( T& base, const char* name )
+{
+  // Set the errors?
+  herr_t status = H5Eset_auto(0,NULL,NULL);
+  // Look for the object
+  status = H5Gget_objinfo( base.getId(), name, 0, NULL );
+
+  if( status == 0 )
+    // If the object is found, it exists, open it
+    return base.openGroup( name );
+  else
+    // If the object is not found, create it
+    return base.createGroup( name );
+}
+
 BenchmarkNode::Storage::Storage(
     const std::string& file_path,
     const std::string& group_path)
@@ -287,49 +305,20 @@ BenchmarkNode::Storage::Storage(
       file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
     }
 
-    // Parse group path to extract tokens between '/' delimiter
-    std::vector<std::string> group_paths;
-    std::string copyOfStr;
-    std::copy( group_path.begin(), group_path.end(), copyOfStr.begin() );
-    char* pStr = (char*)copyOfStr.data(); // Explicit cast because we need to modify the copy
-    char* pch;
-    pch = strtok (pStr,"/");
-    group_paths.push_back("");
-    while (pch != NULL)
-    {
-      group_paths.push_back( group_paths.back() + "/" + std::string(pch) );
-      printf ("%s\n",pch);
-      pch = strtok (NULL, "/");
-    }
-    group_paths.erase( group_paths.begin() );
+    herr_t status = H5Eset_auto(0,NULL,NULL);
+    // Look for the object
+    status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
 
-    // Open (or create if necessary) all groups from root to the main group
-    for(std::vector<std::string>::const_iterator it = group_paths.begin();
-        it != group_paths.end()-1; it++)
+    if( status == 0 )
     {
-      try {
-        // Open the main group
-        mainGroup = file.openGroup( it->c_str() );
-      }
-      catch( H5::FileIException not_found_error ) {
-        // If failed because this is the first time for this group, create it
-        mainGroup = file.createGroup( it->c_str() );
-      }
-    }
-
-    try {
-      // Create the minor group for the experiment sample
-      std::string minor_group = group_paths.back();
-      minorGroup = file.createGroup( minor_group.c_str() );
-    }
-    catch( H5::GroupIException already_created ) {
-      // If failed, tell the user (an experiment sample should not need to be repeated)
-      std::cerr << "----------------------------------------------------------------------------" << std::endl
-                << "HDF5 Error: The subgroup is for a single experiment and should not be reused" << std::endl
-                << "----------------------------------------------------------------------------" << std::endl;
-      already_created.printError();
+      // If the group is found, it exists, return an error (should repeat the group)
+      std::cerr << "The group \"" << group_path << "\" already exists. Finishing program." << std::endl;
       std::terminate();
     }
+    else
+      // If the group does not exist, create it
+      group = H5::EGroup( file.createGroup( group_path.c_str() ) );
+
   }
   catch (...) // TODO: Implement exception catching
   {
@@ -497,7 +486,7 @@ void BenchmarkNode::run()
   // Store attributes of the current experiment
   try {
     // Create the attribute to write the configuration in the main group
-    H5::Attribute attr = store_.mainGroup.createAttribute(
+    H5::Attribute attr = store_.group.createAttribute(
           "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
     attr.write( H5::MyPredType::Config, &cfg );
   }
@@ -532,19 +521,19 @@ void BenchmarkNode::run()
   // Setup datasets for storage in HDF5
   // Take dimension from current configuration
   size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
-  H5::DataSetStream dsetLevelStats = store_.minorGroup.createDataSet2D(
+  H5::DataSetStream dsetLevelStats = store_.group.createDataSet2D(
         "LevelStats",
         H5::MyPredType::LevelStats,
         numOfLevels, pairs.size() - 1 );
-  H5::DataSetStream dsetTimeStats = store_.minorGroup.createDataSet2D(
+  H5::DataSetStream dsetTimeStats = store_.group.createDataSet2D(
         "TimeStats",
         H5::MyPredType::TimeStats,
         numOfLevels, pairs.size() - 1 );
-  H5::DataSetStream dsetTrajPoses = store_.minorGroup.createDataSet2D(
+  H5::DataSetStream dsetTrajPoses = store_.group.createDataSet2D(
         "Trajectory",
         H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
         1, pairs.size() );
-  H5::DataSetStream dsetTrajEval = store_.minorGroup.createDataSet2D(
+  H5::DataSetStream dsetTrajEval = store_.group.createDataSet2D(
         "TrajectoryTUM",
         H5::PredType::NATIVE_DOUBLE,
         8, pairs.size() - 1 );

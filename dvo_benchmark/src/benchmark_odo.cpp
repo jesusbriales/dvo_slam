@@ -111,7 +111,6 @@ public:
     std::string GroundtruthFile;
     std::string Hdf5File;
     std::string Hdf5Group;
-    std::string Hdf5Subgroup;
 
     bool ShowGroundtruth;
     bool ShowEstimate;
@@ -125,13 +124,13 @@ public:
   struct Storage
   {
     H5::H5File file;
-    H5::EGroup mainGroup;
+    H5::Group mainGroup;
     H5::EGroup minorGroup;
 
     // Default empty constructor
     Storage( ) {}
     // Constructor from file and group data
-    Storage( const std::string& file, const std::string& mainGroup, const std::string& minorGroup );
+    Storage(const std::string& file, const std::string& group_path);
   };
 
   BenchmarkNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private);
@@ -263,8 +262,7 @@ bool BenchmarkNode::configure()
   if( nh_private_.getParam("hdf5_file", cfg_.Hdf5File) )
   {
     nh_private_.getParam("hdf5_group", cfg_.Hdf5Group);
-    nh_private_.getParam("hdf5_subgroup", cfg_.Hdf5Subgroup);
-    store_ = Storage(cfg_.Hdf5File,cfg_.Hdf5Group,cfg_.Hdf5Subgroup);
+    store_ = Storage(cfg_.Hdf5File,cfg_.Hdf5Group);
   }
 
   return true;
@@ -272,8 +270,7 @@ bool BenchmarkNode::configure()
 
 BenchmarkNode::Storage::Storage(
     const std::string& file_path,
-    const std::string& main_group,
-    const std::string& minor_group)
+    const std::string& group_path)
 {
   // Use a global try to answer unexpected behaviour
   try {
@@ -290,20 +287,40 @@ BenchmarkNode::Storage::Storage(
       file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
     }
 
-    try {
-      // Open the main group
-      mainGroup = file.openGroup( main_group.c_str() );
+    // Parse group path to extract tokens between '/' delimiter
+    std::vector<std::string> group_paths;
+    std::string copyOfStr;
+    std::copy( group_path.begin(), group_path.end(), copyOfStr.begin() );
+    char* pStr = (char*)copyOfStr.data(); // Explicit cast because we need to modify the copy
+    char* pch;
+    pch = strtok (pStr,"/");
+    group_paths.push_back("");
+    while (pch != NULL)
+    {
+      group_paths.push_back( group_paths.back() + "/" + std::string(pch) );
+      printf ("%s\n",pch);
+      pch = strtok (NULL, "/");
     }
-    catch( H5::FileIException not_found_error ) {
-      // If failed because this is the first time for this group,
-      // create it
-      mainGroup = file.createGroup( main_group.c_str() );
+    group_paths.erase( group_paths.begin() );
+
+    // Open (or create if necessary) all groups from root to the main group
+    for(std::vector<std::string>::const_iterator it = group_paths.begin();
+        it != group_paths.end()-1; it++)
+    {
+      try {
+        // Open the main group
+        mainGroup = file.openGroup( it->c_str() );
+      }
+      catch( H5::FileIException not_found_error ) {
+        // If failed because this is the first time for this group, create it
+        mainGroup = file.createGroup( it->c_str() );
+      }
     }
 
     try {
       // Create the minor group for the experiment sample
-      minorGroup = mainGroup.createGroup( minor_group.c_str() );
-//      minorGroup = mainGroup.openGroup( minor_group.c_str() );
+      std::string minor_group = group_paths.back();
+      minorGroup = file.createGroup( minor_group.c_str() );
     }
     catch( H5::GroupIException already_created ) {
       // If failed, tell the user (an experiment sample should not need to be repeated)

@@ -292,38 +292,28 @@ BenchmarkNode::Storage::Storage(
 {
   // Use a global try to answer unexpected behaviour
   try {
-    // Turn off exception printing to handle exceptions by ourselves
-    H5::Exception::dontPrint();
-
-    try {
-      // Open HDF5 file for the experiment
-      file = H5::H5File( file_path.c_str(), H5F_ACC_RDWR );
-    }
-    catch( H5::FileIException not_found_error ) {
-      // If not openable because it does not exist,
-      // create a new file (overwriting)
-      file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
-    }
-
-    herr_t status = H5Eset_auto(0,NULL,NULL);
-    // Look for the object
-    status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
-
-    if( status == 0 )
-    {
-      // If the group is found, it exists, return an error (should repeat the group)
-      std::cerr << "The group \"" << group_path << "\" already exists. Finishing program." << std::endl;
-      std::terminate();
-    }
-    else
-      // If the group does not exist, create it
-      group = H5::EGroup( file.createGroup( group_path.c_str() ) );
-
+    // Open HDF5 file for the experiment
+    file = H5::H5File( file_path.c_str(), H5F_ACC_RDWR );
   }
-  catch (...) // TODO: Implement exception catching
+  catch( H5::FileIException not_found_error ) {
+    // If not openable because it does not exist,
+    // create a new file (overwriting)
+    file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
+  }
+
+  herr_t status = H5Eset_auto(0,NULL,NULL);
+  // Look for the object
+  status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
+
+  if( status == 0 )
   {
-    std::cerr << "Some unexpected error occurred while setting HDF5 storage" << std::endl;
+    // If the group is found, it exists, return an error (should repeat the group)
+    std::cerr << "The group \"" << group_path << "\" already exists. Finishing program." << std::endl;
+    std::terminate();
   }
+  else
+    // If the group does not exist, create it
+    group = H5::EGroup( file.createGroup( group_path.c_str() ) );
 }
 
 void BenchmarkNode::renderWhileSwitchAndNotTerminated(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer, const dvo::visualization::Switch& s)
@@ -484,16 +474,9 @@ void BenchmarkNode::run()
   ROS_WARN_STREAM_NAMED("config", "config: \"" << cfg << "\"");
 
   // Store attributes of the current experiment
-  try {
-    // Create the attribute to write the configuration in the main group
-    H5::Attribute attr = store_.group.createAttribute(
-          "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
-    attr.write( H5::MyPredType::Config, &cfg );
-  }
-  catch (...)
-  { // If failed because the attribute was already written, do nothing
-    // Take care that the main group is shared for experiment samples with the SAME configuration
-  }
+  H5::Attribute attr = store_.group.createAttribute(
+        "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
+  attr.write( H5::MyPredType::Config, &cfg );
 
   // setup tracker
   dvo::DenseTracker dense_tracker(cfg);

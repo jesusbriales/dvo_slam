@@ -290,30 +290,11 @@ BenchmarkNode::Storage::Storage(
     const std::string& file_path,
     const std::string& group_path)
 {
-  // Use a global try to answer unexpected behaviour
-  try {
-    // Open HDF5 file for the experiment
-    file = H5::H5File( file_path.c_str(), H5F_ACC_RDWR );
-  }
-  catch( H5::FileIException not_found_error ) {
-    // If not openable because it does not exist,
-    // create a new file (overwriting)
-    file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
-  }
+  // Open existing file
+  file = H5::H5File( file_path, H5F_ACC_RDWR );
 
-  herr_t status = H5Eset_auto(0,NULL,NULL);
-  // Look for the object
-  status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
-
-  if( status == 0 )
-  {
-    // If the group is found, it exists, return an error (should repeat the group)
-    std::cerr << "The group \"" << group_path << "\" already exists. Finishing program." << std::endl;
-    std::terminate();
-  }
-  else
-    // If the group does not exist, create it
-    group = H5::EGroup( file.createGroup( group_path.c_str() ) );
+  // Open existing group
+  group = H5::EGroup( file.openGroup( group_path ) );
 }
 
 void BenchmarkNode::renderWhileSwitchAndNotTerminated(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer, const dvo::visualization::Switch& s)

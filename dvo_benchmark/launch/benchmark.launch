@@ -21,6 +21,9 @@
   <arg name="sampling_proportion" default="1.0" />
   <arg name="utility_map" default="2" /> <!-- Id, Ramp, Step -->
   <arg name="sampler" default="1" /> <!-- ProbExpected, ProbExact, Deterministic -->
+  <arg name="coarsest_level" default="3" /> <!-- 3 or 4 -->
+  <arg name="finest_level" default="1" /> <!-- 0 or 1 -->
+  <arg name="mu" default="0" /> <!-- Originally 0.05 -->
   
   <arg name="launch_prefix" value="xterm -e gdb --args" if="$(arg debug)" />
   <arg name="launch_prefix" value="" unless="$(arg debug)" />
@@ -52,5 +55,10 @@
 
     <!-- temporary arguments: assignment to parameters -->
     <param type="double" name="sampling_proportion" value="$(arg sampling_proportion)" />
+    <param type="int" name="utility_map" value="$(arg utility_map)" />
+    <param type="int" name="sampler" value="$(arg sampler)" />
+    <param type="int" name="coarsest_level" value="$(arg coarsest_level)" />
+    <param type="int" name="finest_level" value="$(arg finest_level)" />
+    <param type="double" name="mu" value="$(arg mu)" />
   </node>
 </launch>

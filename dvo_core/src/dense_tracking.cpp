@@ -142,7 +142,6 @@ bool DenseTracker::match(dvo::core::RgbdImagePyramid& reference, dvo::core::Rgbd
 bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdImagePyramid& current, dvo::DenseTracker::Result& result)
 {
   // List of stopwatches to time everything of interest
-  static stopwatch sw_pyr("pyr", 100); // Build image pyramid
   static stopwatch_collection sw_level(5, "l", 100); // Each level loop: Comprises presel, prejac, sel and loop
   static stopwatch_collection sw_presel(5, "presel@l", 100); // Compute point cloud, image gradient and preselect valid points
   static stopwatch_collection sw_prejac(5, "prejac@l", 100); // Precompute jacobian matrices
@@ -154,9 +153,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   static stopwatch_collection sw_linsys(5, "linsys@l", 500); // Build and solve linear system
 
   // Compute pyramid for the current image
-  sw_pyr.start();
   current.compute(cfg.getNumLevels());
-  sw_pyr.stop();
 
   bool success = true;
 

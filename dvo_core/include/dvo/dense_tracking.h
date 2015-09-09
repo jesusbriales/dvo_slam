@@ -125,7 +125,8 @@ public:
 
   struct TimeStats
   {
-    double level, it, error, linsys, presel, prejac, sel;
+    double presel, prejac, util, sel,
+           level, loop, it, error, linsys;
   };
   typedef std::vector<TimeStats> TimeStatsVector;
 

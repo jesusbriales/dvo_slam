@@ -512,6 +512,10 @@ void BenchmarkNode::run()
         "TimeStats",
         H5::MyPredType::TimeStats,
         numOfLevels, pairs.size() - 1 );
+  H5::DataSetStream dsetTimeMatch = store_.group.createDataSet2D(
+        "TimeMatch",
+        H5::PredType::NATIVE_DOUBLE,
+        1, pairs.size() - 1 );
   H5::DataSetStream dsetTrajPoses = store_.group.createDataSet2D(
         "Trajectory",
         H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
@@ -560,6 +564,7 @@ void BenchmarkNode::run()
     if(cfg_.EstimateRequired())
     {
       static dvo::util::stopwatch sw_match("match", 100);
+      double match_time;
       dvo::DenseTracker::Result result; // Stores statistics too
       sw_match.start();
       {
@@ -567,12 +572,14 @@ void BenchmarkNode::run()
         relative = result.Transformation;
       }
       sw_match.stop();
+      match_time = sw_match.computeSumAndReset();
 
       trajectory = trajectory * relative;
 
       // Store results and statistics
       dsetLevelStats << result.Statistics.Levels;
       dsetTimeStats << result.Statistics.Times;
+      dsetTimeMatch << &match_time;
       dsetTrajPoses << trajectory.data();
 
       if(cfg_.EstimateTrajectory)
@@ -628,7 +635,7 @@ void BenchmarkNode::run()
   sw_postprocess.start();
   sw_postprocess.stop();
 
-  sw_online.print();sw_postprocess.print();
+  sw_online.printMean(); sw_postprocess.printMean();
 
   // keep visualization alive
   if(cfg_.KeepAlive)

@@ -54,13 +54,15 @@ CompTypeLevelStats::CompTypeLevelStats()
 #define THIS_TYPE dvo::DenseTracker::TimeStats
 CompTypeTimeStats::CompTypeTimeStats()
 {
+  ADD_MEMBER(presel,PredType::NATIVE_DOUBLE);
+  ADD_MEMBER(prejac,PredType::NATIVE_DOUBLE);
+  ADD_MEMBER(util,PredType::NATIVE_DOUBLE);
+  ADD_MEMBER(sel,PredType::NATIVE_DOUBLE);
   ADD_MEMBER(level,PredType::NATIVE_DOUBLE);
+  ADD_MEMBER(loop,PredType::NATIVE_DOUBLE);
   ADD_MEMBER(it,PredType::NATIVE_DOUBLE);
   ADD_MEMBER(error,PredType::NATIVE_DOUBLE);
   ADD_MEMBER(linsys,PredType::NATIVE_DOUBLE);
-  ADD_MEMBER(presel,PredType::NATIVE_DOUBLE);
-  ADD_MEMBER(prejac,PredType::NATIVE_DOUBLE);
-  ADD_MEMBER(sel,PredType::NATIVE_DOUBLE);
 }
 #undef THIS_TYPE
 

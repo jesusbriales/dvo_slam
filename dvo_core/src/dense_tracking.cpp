@@ -141,7 +141,22 @@ bool DenseTracker::match(dvo::core::RgbdImagePyramid& reference, dvo::core::Rgbd
 
 bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdImagePyramid& current, dvo::DenseTracker::Result& result)
 {
+  // List of stopwatches to time everything of interest
+  static stopwatch sw_pyr("pyr", 100); // Build image pyramid
+  static stopwatch_collection sw_level(5, "l", 100); // Each level loop: Comprises presel, prejac, sel and loop
+  static stopwatch_collection sw_presel(5, "presel@l", 100); // Compute point cloud, image gradient and preselect valid points
+  static stopwatch_collection sw_prejac(5, "prejac@l", 100); // Precompute jacobian matrices
+  static stopwatch_collection sw_util(5, "util@l", 100); // Compute utility for the points
+  static stopwatch_collection sw_sel(5, "sel@l", 100); // Select points according to their information
+  static stopwatch_collection sw_loop(5, "loop@l", 100); // The while loop for solving non-linear problem iteratively
+  static stopwatch_collection sw_it(5, "it@l", 500); // The iteration that occurs inside the loop
+  static stopwatch_collection sw_error(5, "err@l", 500); // Compute residuals and weights, as well as distribution parameters
+  static stopwatch_collection sw_linsys(5, "linsys@l", 500); // Build and solve linear system
+
+  // Compute pyramid for the current image
+  sw_pyr.start();
   current.compute(cfg.getNumLevels());
+  sw_pyr.stop();
 
   bool success = true;
 
@@ -161,14 +176,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   Revertable<Sophus::SE3d> estimate;
 
   bool accept = true;
-
-  static stopwatch_collection sw_level(5, "l", 100);
-  static stopwatch_collection sw_it(5, "it@l", 500);
-  static stopwatch_collection sw_error(5, "err@l", 500);
-  static stopwatch_collection sw_linsys(5, "linsys@l", 500);
-  static stopwatch_collection sw_presel(5, "presel@l", 100);
-  static stopwatch_collection sw_prejac(5, "prejac@l", 100);
-  static stopwatch_collection sw_sel(5, "sel@l", 100);
 
   // allocate the tracker vectors for points, residuals and weights
   // in order to store the residue-related values for the linear system
@@ -216,6 +223,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
   for(itctx_.Level = cfg.FirstLevel; itctx_.Level >= cfg.LastLevel; --itctx_.Level)
   {
+    sw_level[itctx_.Level].start();
+
     result.Statistics.Levels.push_back(LevelStats());
     LevelStats& level_stats = result.Statistics.Levels.back();
 
@@ -290,43 +299,50 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         point_it->getDepthJacobianVec6f() = depthJacobian;
       }
     }
-
     sw_prejac[itctx_.Level].stop();
 
-
-    // select the most informative pixels to speed the rest of steps
-    sw_sel[itctx_.Level].start();
-
-    if(cfg.SamplingProportion < 0.9999f) // Numerical precision
-      // TODO: Try different proportions for different levels
-    { // begin sampling block
-      // compute utility (some metric) for each pixel
+    // select the most informative pixels to speed up the rest of steps
+    {
       std::vector<float> utilities (numValidPixels); // one element per valid pixel
-      {
-        std::vector<float>::iterator util_it = utilities.begin();
-        for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
-            point_it != last_point; ++point_it, ++util_it)
+      sw_util[itctx_.Level].start();
+      if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+        // TODO: Try different proportions for different levels
+      { // begin sampling block
+        // compute utility (some metric) for each pixel
+
         {
-          // compute utility as the squared norm of the photometric jacobian
-          *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
+          std::vector<float>::iterator util_it = utilities.begin();
+          for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+              point_it != last_point; ++point_it, ++util_it)
+          {
+            // compute utility as the squared norm of the photometric jacobian
+            *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
+          }
         }
       }
-      // Sample points to use in the odometry
-      // according to their computed utilities
-      information_selection_.map->setup( utilities, cfg.SamplingProportion );
+      sw_util[itctx_.Level].stop();
 
-      information_selection_.sampler->setup(
-            *information_selection_.map, utilities, cfg.SamplingProportion);
+      // Block separated from utility computation for timing only
+      sw_sel[itctx_.Level].start();
+      if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+      {
+        // Sample points to use in the odometry
+        // according to their computed utilities
+        information_selection_.map->setup( utilities, cfg.SamplingProportion );
 
-      information_selection_.selectPoints<
-          PointWithIntensityAndDepth::VectorType::iterator> (
-            first_point, last_point );
-    } // end sampling block
+        information_selection_.sampler->setup(
+              *information_selection_.map, utilities, cfg.SamplingProportion);
 
-    size_t numSelectedPixels = last_point - first_point;
-    level_stats.SelectedPixels = numSelectedPixels;
+        information_selection_.selectPoints<
+            PointWithIntensityAndDepth::VectorType::iterator> (
+              first_point, last_point );
+      } // end sampling block
 
-    sw_sel[itctx_.Level].stop();
+      size_t numSelectedPixels = last_point - first_point;
+      level_stats.SelectedPixels = numSelectedPixels;
+
+      sw_sel[itctx_.Level].stop();
+    }
 
 
     // create variables for the linear system
@@ -341,9 +357,9 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     compute_residuals_result.first_jacobian = jacobians.begin();
     compute_residuals_result.first_valid_flag = valid_residuals.begin();
 
+    sw_loop[itctx_.Level].start();
 
     // solve the non-linear problem iteratively, by linear approximations
-    sw_level[itctx_.Level].start();
     do
     {
       level_stats.Iterations.push_back(IterationStats());
@@ -477,17 +493,24 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     if(itctx_.IterationsExceeded())
       level_stats.TerminationCriterion = TerminationCriteria::IterationsExceeded;
 
+    sw_loop[itctx_.Level].stop();
     sw_level[itctx_.Level].stop();
+
+//    // Plot level statistics
+//    std::cerr << level_stats << std::endl;
+
     // Store stopwatch times for statistical purposes
     result.Statistics.Times.push_back(TimeStats());
     TimeStats& time_stats = result.Statistics.Times.back();
-    time_stats.level = sw_level[itctx_.Level].computeAndReset();
-    time_stats.it = sw_it[itctx_.Level].computeAndReset();
-    time_stats.error = sw_error[itctx_.Level].computeAndReset();
-    time_stats.linsys = sw_linsys[itctx_.Level].computeAndReset();
-    time_stats.presel = sw_presel[itctx_.Level].computeAndReset();
-    time_stats.prejac = sw_prejac[itctx_.Level].computeAndReset();
-    time_stats.sel = sw_sel[itctx_.Level].computeAndReset();
+    time_stats.level = sw_level[itctx_.Level].computeSumAndReset();
+    time_stats.loop = sw_loop[itctx_.Level].computeSumAndReset();
+    time_stats.it = sw_it[itctx_.Level].computeSumAndReset();
+    time_stats.error = sw_error[itctx_.Level].computeSumAndReset();
+    time_stats.linsys = sw_linsys[itctx_.Level].computeSumAndReset();
+    time_stats.presel = sw_presel[itctx_.Level].computeSumAndReset();
+    time_stats.prejac = sw_prejac[itctx_.Level].computeSumAndReset();
+    time_stats.sel = sw_sel[itctx_.Level].computeSumAndReset();
+    time_stats.util = sw_util[itctx_.Level].computeSumAndReset();
   }
 
   LevelStats& last_level = result.Statistics.Levels.back();

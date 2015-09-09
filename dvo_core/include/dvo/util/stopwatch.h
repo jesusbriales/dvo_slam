@@ -103,6 +103,10 @@ public:
   {
     stopPrintMeanAndReset();
   }
+  inline void stopAndPrint()
+  {
+    stopPrintMeanAndReset();
+  }
 
   inline double computeMeanAndReset()
   {

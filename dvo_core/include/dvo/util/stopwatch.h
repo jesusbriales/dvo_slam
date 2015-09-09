@@ -43,7 +43,7 @@ private:
   int64_t begin;
   int count;
   int interval;
-  accumulator_set<double, stats<tag::mean> > acc;
+  accumulator_set<double, stats<tag::sum, tag::mean> > acc;
 public:
   stopwatch(std::string name, int interval = 500) : name(name), count(0), interval(interval)
   {
@@ -63,43 +63,58 @@ public:
     count++;
   }
 
-  inline double compute()
+  inline double computeMean()
   {
     return mean(acc);
   }
 
+  inline double computeSum()
+  {
+    return sum(acc);
+  }
+
   inline void reset()
   {
-    acc = accumulator_set<double, stats<tag::mean> >();
+    acc = accumulator_set<double, stats<tag::sum, tag::mean> >();
     count = 0;
   }
 
-  inline void print()
+  inline void printMean()
   {
-    std::cerr  << name << ": " << compute() << std::endl;
+    std::cerr  << name << ": " << computeMean() << std::endl;
+  }
+  inline void printSum()
+  {
+    std::cerr  << name << ": " << computeSum() << std::endl;
   }
 
-  inline void stopPrintAndReset()
+  inline void stopPrintMeanAndReset()
   {
     stop();
     if(count == interval)
     {
-      print();
+      printMean();
       reset();
     }
   }
 
   // Keep for back-compatibility
-  inline void stopAndPrint()
+  inline void stopAndPrintMean()
   {
-    stopPrintAndReset();
+    stopPrintMeanAndReset();
   }
 
-  inline double computeAndReset()
+  inline double computeMeanAndReset()
   {
-    double meanValue = compute();
+    double meanValue = computeMean();
     reset();
     return meanValue;
+  }
+  inline double computeSumAndReset()
+  {
+    double sumValue = computeSum();
+    reset();
+    return sumValue;
   }
 };
 

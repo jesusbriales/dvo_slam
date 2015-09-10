@@ -1,7 +1,7 @@
 #coarsest_level: 3          # Temporarily an arg in the launch file
 #finest_level: 1            # Temporarily an arg in the launch file
 max_iterations: 50
-precision: 0.0001
+#precision: 0.0001          # Temporarily an arg in the launch file
 use_initial_estimate: false
 use_weighting: true
 scale_estimator: 2

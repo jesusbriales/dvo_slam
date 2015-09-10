@@ -24,6 +24,7 @@
   <arg name="coarsest_level" default="3" /> <!-- 3 or 4 -->
   <arg name="finest_level" default="1" /> <!-- 0 or 1 -->
   <arg name="mu" default="0" /> <!-- Originally 0.05 -->
+  <arg name="precision" default="0.0001" /> <!-- Originally 0.0001 -->
   
   <arg name="launch_prefix" value="xterm -e gdb --args" if="$(arg debug)" />
   <arg name="launch_prefix" value="" unless="$(arg debug)" />
@@ -60,5 +61,6 @@
     <param type="int" name="coarsest_level" value="$(arg coarsest_level)" />
     <param type="int" name="finest_level" value="$(arg finest_level)" />
     <param type="double" name="mu" value="$(arg mu)" />
+    <param type="double" name="precision" value="$(arg precision)" />
   </node>
 </launch>

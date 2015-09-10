@@ -289,6 +289,34 @@ H5::Group openOrCreateGroup( T& base, const char* name )
     return base.createGroup( name );
 }
 
+bool groupExists( H5::H5File& file, std::string group_path )
+{
+//  bool exists;
+  herr_t status = H5Eset_auto(0,NULL,NULL);
+  status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
+  return (status==0) ? true : false;
+//  if( status == 0 )
+//    exists = true;
+//  else
+//    exists = false;
+}
+
+void createRecursive( H5::H5File& file, std::string path )
+{
+  // Find parent group of the given path
+  size_t found = path.find_last_of("/\\");
+  std::string parent = path.substr(0,found);
+
+  // Check if:
+  // 1. The parent is empty (this group is at root level)
+  // 2. If not empty, if parent does not exist
+  if( parent != "" && !groupExists( file, parent ) )
+    // If the parent groups does not exist, create it recursively
+    createRecursive( file, parent );
+
+  H5::Group( file.createGroup( path ) );
+}
+
 BenchmarkNode::Storage::Storage(
     const std::string& file_path,
     const std::string& group_path)
@@ -305,24 +333,19 @@ BenchmarkNode::Storage::Storage(
     file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
   }
 
+  // Open group
   {
-    herr_t status = H5Eset_auto(0,NULL,NULL);
-    status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
-    if( status == 0 )
-    {
-      // Open existing group
-      group = H5::EGroup( file.openGroup( group_path ) );
-    }
-    else
-    {
-      // If the group does not exist, create it
-      group = H5::EGroup( file.createGroup( group_path ) );
-    }
+    // If the group does not exist, create it and all its parents recursively
+    if( !groupExists( file, group_path ) )
+      createRecursive( file, group_path );
+
+    // Open already existing group
+    group = H5::EGroup( file.openGroup( group_path ) );
   }
 
+  // Open main group (parent group) for writing attribute
   {
-    // Open main group (parent group) for writing attribute
-    char *main_group = { dirname((char*)group_path.c_str()) };
+    char *main_group = { dirname((char*)group_path.c_str()) }; // Warning: It changes original string
     mainGroup = file.openGroup( main_group );
   }
 }

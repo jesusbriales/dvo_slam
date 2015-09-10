@@ -507,10 +507,11 @@ void BenchmarkNode::run()
 
   ROS_WARN_STREAM_NAMED("config", "config: \"" << cfg << "\"");
 
-  // Store attributes of the current experiment
+  // Store attributes of the current experiment if not done yet
   htri_t status = H5Aexists( store_.mainGroup.getId(), "Config" );
   if( status == 0 ) // htri_t 0 means false, not exists
   {
+    // If the attribute "Config" does not exist, save it
     H5::Attribute attr = store_.mainGroup.createAttribute(
           "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
     attr.write( H5::MyPredType::Config, &cfg );
@@ -540,28 +541,41 @@ void BenchmarkNode::run()
 
 
   // Setup datasets for storage in HDF5
+  H5::DataSetStream dsetLevelStats, dsetTimeStats, dsetTimeMatch, dsetTrajPoses, dsetTrajEval;
   // Take dimension from current configuration
+  try
+  {
   size_t numOfLevels = cfg.FirstLevel - cfg.LastLevel + 1;
-  H5::DataSetStream dsetLevelStats = store_.group.createDataSet2D(
+  dsetLevelStats = store_.group.createDataSet2D(
         "LevelStats",
         H5::MyPredType::LevelStats,
         numOfLevels, pairs.size() - 1 );
-  H5::DataSetStream dsetTimeStats = store_.group.createDataSet2D(
+  dsetTimeStats = store_.group.createDataSet2D(
         "TimeStats",
         H5::MyPredType::TimeStats,
         numOfLevels, pairs.size() - 1 );
-  H5::DataSetStream dsetTimeMatch = store_.group.createDataSet2D(
+  dsetTimeMatch = store_.group.createDataSet2D(
         "TimeMatch",
         H5::PredType::NATIVE_DOUBLE,
         1, pairs.size() - 1 );
-  H5::DataSetStream dsetTrajPoses = store_.group.createDataSet2D(
+  dsetTrajPoses = store_.group.createDataSet2D(
         "Trajectory",
         H5::createArrayType2D(H5::PredType::NATIVE_DOUBLE, 4,4),
         1, pairs.size() );
-  H5::DataSetStream dsetTrajEval = store_.group.createDataSet2D(
+  dsetTrajEval = store_.group.createDataSet2D(
         "TrajectoryTUM",
         H5::PredType::NATIVE_DOUBLE,
         8, pairs.size() - 1 );
+  }
+  catch (...)
+  {
+    char name[150];
+    H5Iget_name(store_.group.getId(), name, 150);
+    std::cerr << "Exception: Some of the datasets already exists in group "
+              << std::string(name)
+              << std::endl;
+    std::terminate();
+  }
 
   // Save first trajectory pose (identity by default)
   dsetTrajPoses << trajectory.data();

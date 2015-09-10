@@ -45,6 +45,7 @@
 
 #include <H5Cpp.h>
 #include <dvo_benchmark/h5filebenchmark.h>
+#include <libgen.h>
 
 dvo::core::RgbdImagePyramidPtr load(dvo::core::RgbdCameraPyramid& camera, std::string rgb_file, std::string depth_file)
 {
@@ -125,6 +126,8 @@ public:
   {
     H5::H5File file;
     H5::EGroup group;
+    H5::Group mainGroup;
+//    H5::Attribute config;
 
     // Default empty constructor
     Storage( )
@@ -302,17 +305,25 @@ BenchmarkNode::Storage::Storage(
     file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
   }
 
-  herr_t status = H5Eset_auto(0,NULL,NULL);
-  status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
-  if( status == 0 )
   {
-    // Open existing group
-    group = H5::EGroup( file.openGroup( group_path ) );
+    herr_t status = H5Eset_auto(0,NULL,NULL);
+    status = H5Gget_objinfo( file.getId(), group_path.c_str(), 0, NULL );
+    if( status == 0 )
+    {
+      // Open existing group
+      group = H5::EGroup( file.openGroup( group_path ) );
+    }
+    else
+    {
+      // If the group does not exist, create it
+      group = H5::EGroup( file.createGroup( group_path ) );
+    }
   }
-  else
+
   {
-    // If the group does not exist, create it
-    group = H5::EGroup( file.createGroup( group_path ) );
+    // Open main group (parent group) for writing attribute
+    char *main_group = { dirname((char*)group_path.c_str()) };
+    mainGroup = file.openGroup( main_group );
   }
 }
 
@@ -474,9 +485,13 @@ void BenchmarkNode::run()
   ROS_WARN_STREAM_NAMED("config", "config: \"" << cfg << "\"");
 
   // Store attributes of the current experiment
-  H5::Attribute attr = store_.group.createAttribute(
-        "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
-  attr.write( H5::MyPredType::Config, &cfg );
+  htri_t status = H5Aexists( store_.mainGroup.getId(), "Config" );
+  if( status == 0 ) // htri_t 0 means false, not exists
+  {
+    H5::Attribute attr = store_.mainGroup.createAttribute(
+          "Config", H5::MyPredType::Config, H5::DataSpace(H5S_SCALAR) );
+    attr.write( H5::MyPredType::Config, &cfg );
+  }
 
   // setup tracker
   dvo::DenseTracker dense_tracker(cfg);

@@ -69,6 +69,42 @@ void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
     slope = probMax / bisect( fun, minValue, maxValue, toleranceNumOfSamples );
 }
 
+// Operator for the step map,
+// given by a threshold and a maximum value
+float StepMap::operator ()( Utility point_utility ) const
+{
+  if( point_utility > lowerThres )
+  {
+    return probMax;
+  }
+  else
+    return 0;
+}
+
+void StepMap::setup(const UtilityVector& utilities, float ratio)
+{
+  samplingRatio = ratio;
+
+  // Set lower threshold with a 10% margin wrt the desired ratio
+  float prefilterRatio = std::min( 1.0, ratio + 0.1 );
+  // Set the threshold no lower that at a 20% of prefiltering (original value by Dellaert)
+  if(prefilterRatio<0.2)
+    prefilterRatio = 0.2;
+
+  // Set map threshold in the utility value for the desired prefilter ratio
+  lowerThres = nth_orderStatistic( utilities, std::floor( prefilterRatio * utilities.size() ) );
+
+  // Compute the expected num of samples with the current configuration, probMax of 1
+  // Use a simple proportional rule (works for this simple profile)
+  probMax = 1.0;
+  probMax = ratio * float(utilities.size()) / expectedNumOfSamples( utilities );
+
+  // Debug:
+  // Check that the expected num of samples constraint is fulfilled with the new probMax
+//  float checkConstraint = samplingRatioConstraint( utilities );
+//  std::cout << "Constraint value (should be 0): " << checkConstraint << std::endl;
+}
+
 const char* UtilityMaps::str(enum_t type)
 {
   switch(type)
@@ -77,6 +113,8 @@ const char* UtilityMaps::str(enum_t type)
       return "Id";
     case UtilityMaps::Ramp:
       return "Probabilistic ramp";
+    case UtilityMaps::Step:
+      return "Step function";
     default:
       break;
   }
@@ -89,6 +127,7 @@ UtilityMap* UtilityMaps::get(UtilityMaps::enum_t type)
 {
   static IdMap id;
   static ProbRampMap probRamp;
+  static StepMap probStep;
 
   switch(type)
   {
@@ -96,6 +135,8 @@ UtilityMap* UtilityMaps::get(UtilityMaps::enum_t type)
       return (UtilityMap*)&id;
     case UtilityMaps::Ramp:
       return (UtilityMap*)&probRamp;
+    case UtilityMaps::Step:
+      return (UtilityMap*)&probStep;
     default:
       break;
   }

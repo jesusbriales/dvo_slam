@@ -63,6 +63,9 @@ public:
     return sum( acc );
   }
 
+  // Gives the expected difference (in number of samples, NOT ratio!)
+  // between the desired number of samples and the expected number of samples
+  // with the current configuration map
   inline float samplingRatioConstraint( const UtilityVector& utilities )
   {
 	return expectedNumOfSamples( utilities ) - samplingRatio * utilities.size();
@@ -80,6 +83,16 @@ public:
 
 public:
   float lowerThres, slope, probMax; // Map parameters
+};
+
+class StepMap : public ProbabilityMap
+{
+public:
+  virtual float operator() ( Utility ) const;
+  void setup(const UtilityVector&, float ratio);
+
+public:
+  float lowerThres, probMax; // Map parameters
 };
 
 struct UtilityMaps {

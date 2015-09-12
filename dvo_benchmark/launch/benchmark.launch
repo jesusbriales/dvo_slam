@@ -15,6 +15,7 @@
   <arg name="camera_file" default="$(arg output_dir)/camera.txt" />
   <arg name="hdf5_file" default="$(arg output_dir)/benchmark.h5" />
   <arg name="hdf5_group" default="experiment" />
+  <arg name="hdf5_overwrite" default="false" />
   <arg name="debug" default="false" />
 
   <!-- temporary arguments: assignment to parameters -->
@@ -41,6 +42,7 @@
 
     <param type="string" name="hdf5_file" value="$(arg hdf5_file)" />
     <param type="string" name="hdf5_group" value="$(arg hdf5_group)" />
+    <param type="bool" name="hdf5_overwrite" value="$(arg hdf5_overwrite)" />
     
     <param type="bool" name="show_estimate" value="true" />
     <param type="bool" name="show_groundtruth" value="false" />

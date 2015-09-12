@@ -112,6 +112,7 @@ public:
     std::string GroundtruthFile;
     std::string Hdf5File;
     std::string Hdf5Group;
+    bool Hdf5Overwrite;
 
     bool ShowGroundtruth;
     bool ShowEstimate;
@@ -268,6 +269,8 @@ bool BenchmarkNode::configure()
   {
     nh_private_.getParam("hdf5_group", cfg_.Hdf5Group);
     store_ = Storage(cfg_.Hdf5File,cfg_.Hdf5Group);
+
+    nh_private_.getParam("hdf5_overwrite", cfg_.Hdf5Overwrite);
   }
 
   return true;
@@ -463,7 +466,6 @@ void BenchmarkNode::run()
   dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer;
   dvo_slam::visualization::GraphVisualizer* graph_visualizer;
 
-
   if(cfg_.VisualizationRequired())
   {
     visualizer = new dvo_ros::visualization::RosCameraTrajectoryVisualizer(nh_vis_);
@@ -571,10 +573,30 @@ void BenchmarkNode::run()
   {
     char name[150];
     H5Iget_name(store_.group.getId(), name, 150);
-    std::cerr << "Exception: Some of the datasets already exists in group "
-              << std::string(name)
-              << std::endl;
-    std::terminate();
+    if(cfg_.Hdf5Overwrite)
+    {
+      std::cerr << "WARNING: Some of the datasets already exists in group "
+                << std::string(name) << "." << std::endl
+                << "The datasets are going to be rewritten."
+                << std::endl
+                << "Set hdf5_overwrite false to avoid overwriting."
+                << std::endl;
+      dsetLevelStats = store_.group.openDataSet("LevelStats");
+      dsetTimeStats = store_.group.openDataSet("TimeStats");
+      dsetTimeMatch = store_.group.openDataSet("TimeMatch");
+      dsetTrajPoses = store_.group.openDataSet("Trajectory");
+      dsetTrajEval = store_.group.openDataSet("TrajectoryTUM");
+    }
+    else
+    {
+      std::cerr << "WARNING: Some of the datasets already exists in group "
+                << std::string(name) << "." << std::endl
+                << "The execution is going to be terminated."
+                << std::endl
+                << "Set hdf5_overwrite true to overwrite."
+                << std::endl;
+      std::terminate();
+    }
   }
 
   // Save first trajectory pose (identity by default)

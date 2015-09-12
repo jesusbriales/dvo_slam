@@ -55,7 +55,7 @@ public:
 class ProbExactSampler : public Sampler
 {
 public:
-  void setup( const UtilityMap& map, const UtilityVector& utilities, float numOfSamples );
+  void setup( const UtilityMap& map, const UtilityVector& utilities, float ratio );
 
   inline bool makeDecision() const
   {
@@ -70,7 +70,7 @@ protected:
 class DeterministicSampler : public Sampler
 {
 public:
-  void setup( const UtilityMap& map, const UtilityVector& utilities, float numOfSamples );
+  void setup( const UtilityMap& map, const UtilityVector& utilities, float ratio );
 
   inline bool makeDecision() const
   {

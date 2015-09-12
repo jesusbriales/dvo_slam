@@ -8,6 +8,7 @@
 #include <boost/accumulators/statistics/sum.hpp>
 
 #include <time.h> /* time, for srand */
+#include <algorithm> /* nth_element, for QuickSelect */
 
 namespace dvo
 {
@@ -93,6 +94,27 @@ struct UtilityMaps {
 
   static UtilityMap* get(enum_t type);
 };
+
+
+
+// Define some util functions
+
+// Compute the value in a list (given as a vector)
+// which would have the nth position in the ordered list
+// Implemented using std::nth_element, equivalent to QuickSelect
+template <class T>
+float nth_orderStatistic( const std::vector<T>& list, size_t n )
+{
+  // Create a copy of the list to keep the original unchanged
+  std::vector<T> copyOfList;
+  copyOfList.resize( list.size() );
+  std::copy( list.begin(), list.end(), copyOfList.begin() );
+
+  typename std::vector<T>::iterator it_nth;
+  it_nth = copyOfList.begin() + n;
+  std::nth_element( copyOfList.begin(), it_nth, copyOfList.end() );
+  return *it_nth;
+}
 
 } /* namespace selection */
 } /* namespace dvo */

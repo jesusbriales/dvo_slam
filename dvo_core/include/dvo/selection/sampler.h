@@ -87,7 +87,8 @@ struct Samplers {
   typedef enum {
   ProbExpected,
   ProbExact,
-  Deterministic
+  Deterministic,
+  Saliency
   // don't forget to add to dynamic reconfigure!
   } enum_t;
 

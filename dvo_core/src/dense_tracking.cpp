@@ -58,7 +58,8 @@ DenseTracker::DenseTracker(const Config& config) :
     weight_calculation_(),
     selection_predicate_(),
     reference_selection_(selection_predicate_),
-    information_selection_()
+    information_selection_(),
+    saliency_selection_()
 {
   configure(config);
 }
@@ -68,7 +69,8 @@ DenseTracker::DenseTracker(const DenseTracker& other) :
   weight_calculation_(),
   selection_predicate_(),
   reference_selection_(selection_predicate_),
-  information_selection_()
+  information_selection_(),
+  saliency_selection_()
 {
   configure(other.configuration());
 }
@@ -101,9 +103,12 @@ void DenseTracker::configure(const Config& config)
 
   if(cfg.SamplingProportion < 0.99999f)
   {
-    information_selection_.samplingRatio = cfg.SamplingProportion;
-    information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType);
-    information_selection_.sampler = selection::Samplers::get(cfg.SamplerType);
+    if(cfg.SamplerType != dvo::selection::Samplers::Saliency)
+    {
+      information_selection_.samplingRatio = cfg.SamplingProportion;
+      information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType);
+      information_selection_.sampler = selection::Samplers::get(cfg.SamplerType);
+    }
   }
 }
 
@@ -298,47 +303,97 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     }
     sw_prejac[itctx_.Level].stop();
 
-    // select the most informative pixels to speed up the rest of steps
+    // Need to choose here between types of selection
+    if(cfg.SamplerType == dvo::selection::Samplers::Saliency)
     {
-      std::vector<float> utilities (numValidPixels); // one element per valid pixel
       sw_util[itctx_.Level].start();
-      if(cfg.SamplingProportion < 0.9999f) // Numerical precision
-        // TODO: Try different proportions for different levels
-      { // begin sampling block
-        // compute utility (some metric) for each pixel
-
-        {
-          std::vector<float>::iterator util_it = utilities.begin();
-          for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
-              point_it != last_point; ++point_it, ++util_it)
-          {
-            // compute utility as the squared norm of the photometric jacobian
-            *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
-          }
-        }
-      }
+      // No utility to compute
       sw_util[itctx_.Level].stop();
 
-      // Block separated from utility computation for timing only
       sw_sel[itctx_.Level].start();
-      if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+      // The method by Meilland, directly uses the Jacobian components
+      // Use specific class for the saliency map selection
+      if(cfg.SamplingProportion < 0.9999f)
       {
-        // Sample points to use in the odometry
-        // according to their computed utilities
-        information_selection_.map->setup( utilities, cfg.SamplingProportion );
+        size_t numOfSamples = cfg.SamplingProportion * numValidPixels;
+        saliency_selection_.setNumPixels(numOfSamples);
+        std::vector<Vector6> allJacobians( numValidPixels );
 
-        information_selection_.sampler->setup(
-              *information_selection_.map, utilities, cfg.SamplingProportion);
+        // Create vector of jacobians to pass to the saliency selector
+        std::vector<Vector6>::iterator jac_it = allJacobians.begin();
+        for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+            point_it != last_point; ++point_it, ++jac_it)
+        {
+          // store complete photometric jacobian
+          *jac_it = point_it->getIntensityJacobianVec6f();
+        }
 
-        information_selection_.selectPoints<
-            PointWithIntensityAndDepth::VectorType::iterator> (
-              first_point, last_point );
-      } // end sampling block
+        // Find list of indeces for the best pixels according to Meilland's method
+        const std::set<size_t>& ids =
+            saliency_selection_.selectInformation( &allJacobians[ 0 ], allJacobians.size() );
 
-      size_t numSelectedPixels = last_point - first_point;
-      level_stats.SelectedPixels = numSelectedPixels;
-
+        // Keep selected points only
+        {
+          PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+          for(std::set<size_t>::const_iterator it = ids.begin(); it != ids.end(); ++it, ++point_it)
+          {
+            // Substitute old point with the new selected one
+            *point_it = *(first_point + *it);
+          }
+          last_point = point_it; // Not necessary to remove last one? Or one less element stays than in ids...
+        }
+        size_t numSelectedPixels = last_point - first_point;
+        level_stats.SelectedPixels = numSelectedPixels;
+      }
       sw_sel[itctx_.Level].stop();
+    }
+    else
+    {
+      // The cases which uses a certain utility function
+      // followed by a sampling process which uses those utilities
+
+      // select the most informative pixels to speed up the rest of steps
+      {
+        std::vector<float> utilities (numValidPixels); // one element per valid pixel
+        sw_util[itctx_.Level].start();
+        if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+          // TODO: Try different proportions for different levels
+        { // begin sampling block
+          // compute utility (some metric) for each pixel
+
+          {
+            std::vector<float>::iterator util_it = utilities.begin();
+            for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
+                point_it != last_point; ++point_it, ++util_it)
+            {
+              // compute utility as the squared norm of the photometric jacobian
+              *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
+            }
+          }
+        }
+        sw_util[itctx_.Level].stop();
+
+        // Block separated from utility computation for timing only
+        sw_sel[itctx_.Level].start();
+        if(cfg.SamplingProportion < 0.9999f) // Numerical precision
+        {
+          // Sample points to use in the odometry
+          // according to their computed utilities
+          information_selection_.map->setup( utilities, cfg.SamplingProportion );
+
+          information_selection_.sampler->setup(
+                *information_selection_.map, utilities, cfg.SamplingProportion);
+
+          information_selection_.selectPoints<
+              PointWithIntensityAndDepth::VectorType::iterator> (
+                first_point, last_point );
+        } // end sampling block
+
+        size_t numSelectedPixels = last_point - first_point;
+        level_stats.SelectedPixels = numSelectedPixels;
+
+        sw_sel[itctx_.Level].stop();
+      }
     }
 
 

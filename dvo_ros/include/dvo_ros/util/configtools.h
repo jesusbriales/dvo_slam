@@ -94,6 +94,9 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
 	case dvo_ros::CameraDenseTracker_DeterministicSampler:
 	  sampler = dvo::selection::Samplers::Deterministic;
 	  break;
+  case dvo_ros::CameraDenseTracker_SaliencySampler:
+    sampler = dvo::selection::Samplers::Saliency;
+    break;
 	default:
 	  assert(false && "unknown sampler");
 	  break;

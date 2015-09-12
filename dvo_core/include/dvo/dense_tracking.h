@@ -34,6 +34,7 @@
 #include <dvo/core/weight_calculation.h>
 
 #include <dvo/selection/selector.h>
+#include <dvo/selection/saliency_selection.h>
 
 namespace dvo
 {
@@ -222,6 +223,8 @@ private:
   dvo::core::ValidPointAndGradientThresholdPredicate selection_predicate_;
   dvo::core::PointSelection reference_selection_;
   dvo::selection::Selector information_selection_;
+  // Create another independent object to test Meilland selection
+  cvt::SaliencySelection<dvo::core::Vector6> saliency_selection_;
 
   // Vectors for the values corresponding to each point finally put in the linear system
   // These are unallocated, so they must be resized before use

@@ -70,6 +70,8 @@ const char* Samplers::str(enum_t type)
       return "Probabilistic Exact";
     case Samplers::Deterministic:
       return "Deterministic";
+    case Samplers::Saliency:
+      return "Saliency";
     default:
       break;
   }

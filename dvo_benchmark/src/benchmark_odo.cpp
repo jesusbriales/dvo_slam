@@ -324,16 +324,26 @@ BenchmarkNode::Storage::Storage(
     const std::string& file_path,
     const std::string& group_path)
 {
-  try {
-    H5::Exception::dontPrint();
-
-    // Open HDF5 file for the experiment
-    file = H5::H5File( file_path.c_str(), H5F_ACC_RDWR );
+  // Check if file exists
+  if (std::ifstream(file_path))
+  {
+    // Case the file already exists, check it is HDF5
+    if(H5::H5File::isHdf5(file_path))
+    {
+      // Open HDF5 file for the experiment
+      file = H5::H5File( file_path, H5F_ACC_RDWR );
+    }
+    else
+    {
+      std::cerr << "The existing file is not HDF5" << std::endl;
+      std::terminate();
+    }
   }
-  catch( H5::FileIException not_found_error ) {
+  else
+  {
     // If not openable because it does not exist,
     // create a new file (overwriting)
-    file = H5::H5File( file_path.c_str(), H5F_ACC_TRUNC );
+    file = H5::H5File( file_path, H5F_ACC_TRUNC );
   }
 
   // Open group

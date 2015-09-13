@@ -424,55 +424,55 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       sw_error[itctx_.Level].start();
       Eigen::Affine3f transformf;
 
-        inc = Sophus::SE3d::exp(x);
-        initial.update() = inc.inverse() * initial();
-        estimate.update() = inc * estimate();
+      inc = Sophus::SE3d::exp(x);
+      initial.update() = inc.inverse() * initial();
+      estimate.update() = inc * estimate();
 
-        transformf = estimate().matrix().cast<float>();
+      transformf = estimate().matrix().cast<float>();
 
-        if(debug)
-        {
-          dvo::core::computeResidualsAndValidFlagsSse(first_point, last_point, cur, K, transformf, wref, wcur, compute_residuals_result);
-        }
-        else
-        {
-          dvo::core::computeResidualsSse(first_point, last_point, cur, K, transformf, wref, wcur, compute_residuals_result);
-        }
-        size_t n = (compute_residuals_result.last_residual - compute_residuals_result.first_residual);
-        iteration_stats.ValidConstraints = n;
+      if(debug)
+      {
+        dvo::core::computeResidualsAndValidFlagsSse(first_point, last_point, cur, K, transformf, wref, wcur, compute_residuals_result);
+      }
+      else
+      {
+        dvo::core::computeResidualsSse(first_point, last_point, cur, K, transformf, wref, wcur, compute_residuals_result);
+      }
+      size_t n = (compute_residuals_result.last_residual - compute_residuals_result.first_residual);
+      iteration_stats.ValidConstraints = n;
 
-        if(n < 6)
-        {
-          initial.revert();
-          estimate.revert();
+      if(n < 6)
+      {
+        initial.revert();
+        estimate.revert();
 
-          level_stats.TerminationCriterion = TerminationCriteria::TooFewConstraints;
+        level_stats.TerminationCriterion = TerminationCriteria::TooFewConstraints;
 
-          break;
-        }
+        break;
+      }
 
-        if(itctx_.IsFirstIterationOnLevel())
-        {
-          std::fill(weights.begin(), weights.begin() + n, 1.0f);
-        }
-        else
-        {
-          dvo::core::computeWeightsSse(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean, precision);
-        }
+      if(itctx_.IsFirstIterationOnLevel())
+      {
+        std::fill(weights.begin(), weights.begin() + n, 1.0f);
+      }
+      else
+      {
+        dvo::core::computeWeightsSse(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean, precision);
+      }
 
-        precision = dvo::core::computeScaleSse(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean).inverse();
+      precision = dvo::core::computeScaleSse(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean).inverse();
 
-        float ll = computeCompleteDataLogLikelihood(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean, precision);
+      float ll = computeCompleteDataLogLikelihood(compute_residuals_result.first_residual, compute_residuals_result.last_residual, weights.begin(), mean, precision);
 
-        iteration_stats.TDistributionLogLikelihood = -ll;
-        iteration_stats.TDistributionMean = mean.cast<double>();
-        iteration_stats.TDistributionPrecision = precision.cast<double>();
-        iteration_stats.PriorLogLikelihood = cfg.Mu * initial().log().squaredNorm();
+      iteration_stats.TDistributionLogLikelihood = -ll;
+      iteration_stats.TDistributionMean = mean.cast<double>();
+      iteration_stats.TDistributionPrecision = precision.cast<double>();
+      iteration_stats.PriorLogLikelihood = cfg.Mu * initial().log().squaredNorm();
 
-        total_error = -ll;//iteration_stats.TDistributionLogLikelihood + iteration_stats.PriorLogLikelihood;
+      total_error = -ll;//iteration_stats.TDistributionLogLikelihood + iteration_stats.PriorLogLikelihood;
 
-        itctx_.LastError = itctx_.Error;
-        itctx_.Error = total_error;
+      itctx_.LastError = itctx_.Error;
+      itctx_.Error = total_error;
 
       sw_error[itctx_.Level].stop();
 
@@ -492,8 +492,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       // now build equation system
       sw_linsys[itctx_.Level].start();
 
-#define PRECOMPUTED 1
-#if PRECOMPUTED
       ResidualVectorType::iterator r_it, last_r_it;
       r_it = residuals.begin();
       last_r_it = compute_residuals_result.last_residual;
@@ -504,25 +502,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       {
         ls.update(*j_it, *r_it, (*w_it) * precision);
       }
-#else
-      ResidualVectorType::iterator r_it = residuals.begin();
-      JacobianVectorType::iterator j_it = jacobians.begin();
-      WeightVectorType::iterator w_it = weights.begin();
-      Matrix2x6 J, Jw;
-      Eigen::Vector2f Ji;
-      Vector6 Jz;
-      ls.initialize(1);
-      for(PointIterator e_it = compute_residuals_result.first_point_error; e_it != compute_residuals_result.last_point_error; ++e_it, ++w_it)
-      {
-        computeJacobianOfProjectionAndTransformation(e_it->getPointVec4f(), Jw);
-        compute3rdRowOfJacobianOfTransformation(e_it->getPointVec4f(), Jz);
-
-        J.row(0) = e_it->getIntensityDerivativeVec2f().transpose() * Jw;
-        J.row(1) = e_it->getDepthDerivativeVec2f().transpose() * Jw - Jz.transpose();
-
-        ls.update(J, e_it->getIntensityAndDepthVec2f(), (*w_it) * precision);
-      }
-#endif
       ls.finish();
 
       A = ls.A.cast<double>() + cfg.Mu * Matrix6d::Identity();
@@ -547,9 +526,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
     sw_loop[itctx_.Level].stop();
     sw_level[itctx_.Level].stop();
-
-//    // Plot level statistics
-//    std::cerr << level_stats << std::endl;
 
     // Store stopwatch times for statistical purposes
     result.Statistics.Times.push_back(TimeStats());

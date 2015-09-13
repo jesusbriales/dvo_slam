@@ -335,8 +335,10 @@ BenchmarkNode::Storage::Storage(
     }
     else
     {
-      std::cerr << "The existing file is not HDF5" << std::endl;
-      std::terminate();
+      std::cerr << "The existing file is not HDF5, overwriting it" << std::endl;
+//      std::terminate();
+      // Overwrite file
+      file = H5::H5File( file_path, H5F_ACC_TRUNC );
     }
   }
   else

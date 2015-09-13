@@ -303,6 +303,10 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
     }
     sw_prejac[itctx_.Level].stop();
 
+    // Set a minimum number of points to sample, for stability (500?)
+    // The ratio is set so that the num of points taken is not below 500
+    float samplingRatio = ( cfg.SamplingProportion * numValidPixels < 500.0 ) ?
+        500.0 / numValidPixels : cfg.SamplingProportion;
     // Need to choose here between types of selection
     if(cfg.SamplerType == dvo::selection::Samplers::Saliency)
     {
@@ -315,7 +319,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
       // Use specific class for the saliency map selection
       if(cfg.SamplingProportion < 0.9999f)
       {
-        size_t numOfSamples = cfg.SamplingProportion * numValidPixels;
+        size_t numOfSamples = samplingRatio * numValidPixels;
         saliency_selection_.setNumPixels(numOfSamples);
         std::vector<Vector6> allJacobians( numValidPixels );
 
@@ -376,13 +380,13 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         // Block separated from utility computation for timing only
         sw_sel[itctx_.Level].start();
         if(cfg.SamplingProportion < 0.9999f) // Numerical precision
-        {
+        {          
           // Sample points to use in the odometry
           // according to their computed utilities
-          information_selection_.map->setup( utilities, cfg.SamplingProportion );
+          information_selection_.map->setup( utilities, samplingRatio );
 
           information_selection_.sampler->setup(
-                *information_selection_.map, utilities, cfg.SamplingProportion);
+                *information_selection_.map, utilities, samplingRatio);
 
           information_selection_.selectPoints<
               PointWithIntensityAndDepth::VectorType::iterator> (

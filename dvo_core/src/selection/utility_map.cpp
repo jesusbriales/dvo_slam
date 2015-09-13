@@ -57,7 +57,7 @@ void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
   // Parameterize slope with horizontal interval of the ramp (for fixed height)
   // which adjusts better to the non-linearity of the problem
   float numOfSamples = samplingRatio * utilities.size();
-  float alpha = numOfSamples / boost::accumulate(utilities,0);
+  float alpha = numOfSamples / boost::accumulate(utilities,0.0f);
   float minValue = 0;
   float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;

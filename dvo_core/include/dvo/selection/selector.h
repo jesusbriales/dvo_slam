@@ -1,6 +1,7 @@
 #ifndef SELECTOR_H
 #define SELECTOR_H
 
+#include <dvo/selection/utility.h>
 #include <dvo/selection/utility_map.h>
 #include <dvo/selection/sampler.h>
 
@@ -16,6 +17,7 @@ public:
   void selectPoints( it_type&, it_type& );
 
 public:
+  UtilityCalculator* utilCalc;
   UtilityMap* map;
   Sampler* sampler;
 

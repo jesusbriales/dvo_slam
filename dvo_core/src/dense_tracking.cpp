@@ -224,6 +224,10 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
   Eigen::Matrix2f /*first_precision,*/ precision;
   precision.setZero();
 
+  // Define matrix for the linear system, also for information estimate
+  Matrix6d A;
+  A.setIdentity();
+
   for(itctx_.Level = cfg.FirstLevel; itctx_.Level >= cfg.LastLevel; --itctx_.Level)
   {
     sw_level[itctx_.Level].start();
@@ -365,8 +369,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
           // TODO: Try different proportions for different levels
         { // begin sampling block
           // compute utility (some metric) for each pixel
-          Matrix6d information = Matrix6d::Identity(6,6); // Temporal: change to real information estimate
-          information_selection_.utilCalc->compute( first_point, last_point, information, utilities );
+          information_selection_.utilCalc->compute( first_point, last_point, A, utilities );
         }
         sw_util[itctx_.Level].stop();
 
@@ -396,7 +399,7 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
     // create variables for the linear system
     NormalEquationsLeastSquares ls;
-    Matrix6d A;
+//    Matrix6d A; // Define before to use it as information container to compute utilities
     Vector6d x, b;
     x = inc.log();
 

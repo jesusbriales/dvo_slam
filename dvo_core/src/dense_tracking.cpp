@@ -106,6 +106,7 @@ void DenseTracker::configure(const Config& config)
     if(cfg.SamplerType != dvo::selection::Samplers::Saliency)
     {
       information_selection_.samplingRatio = cfg.SamplingProportion;
+      information_selection_.utilCalc = selection::Utilities::get(cfg.UtilityType);
       information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType);
       information_selection_.sampler = selection::Samplers::get(cfg.SamplerType);
     }
@@ -358,22 +359,14 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
 
       // select the most informative pixels to speed up the rest of steps
       {
-        std::vector<float> utilities (numValidPixels); // one element per valid pixel
         sw_util[itctx_.Level].start();
+        std::vector<float> utilities (numValidPixels); // one element per valid pixel
         if(cfg.SamplingProportion < 0.9999f) // Numerical precision
           // TODO: Try different proportions for different levels
         { // begin sampling block
           // compute utility (some metric) for each pixel
-
-          {
-            std::vector<float>::iterator util_it = utilities.begin();
-            for(PointWithIntensityAndDepth::VectorType::iterator point_it = first_point;
-                point_it != last_point; ++point_it, ++util_it)
-            {
-              // compute utility as the squared norm of the photometric jacobian
-              *util_it = point_it->getIntensityJacobianVec6f().squaredNorm();
-            }
-          }
+          Matrix6d information = Matrix6d::Identity(6,6); // Temporal: change to real information estimate
+          information_selection_.utilCalc->compute( first_point, last_point, information, utilities );
         }
         sw_util[itctx_.Level].stop();
 

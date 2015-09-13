@@ -64,6 +64,7 @@ public:
     float DepthDerivativeThreshold;
 
     float SamplingProportion;
+    dvo::selection::Utilities::enum_t UtilityType;
     dvo::selection::UtilityMaps::enum_t UtilityMapType;
     dvo::selection::Samplers::enum_t SamplerType;
 
@@ -254,6 +255,7 @@ std::ostream& operator<< (std::basic_ostream<CharT, Traits> &out, const dvo::Den
   << ", Intensity Derivative Threshold = " << config.IntensityDerivativeThreshold
   << ", Depth Derivative Threshold = " << config.DepthDerivativeThreshold
   << ", Sampling Proportion = " << config.SamplingProportion
+  << ", Utility = " << dvo::selection::Utilities::str(config.UtilityType)
   << ", Utility Map = " << dvo::selection::UtilityMaps::str(config.UtilityMapType)
   << ", Sampler = " << dvo::selection::Samplers::str(config.SamplerType)
   ;

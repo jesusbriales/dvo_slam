@@ -39,6 +39,7 @@ DenseTracker::Config::Config() :
   IntensityDerivativeThreshold(0.0f),
   DepthDerivativeThreshold(0.0f),
   SamplingProportion(1.0f),
+  UtilityType(dvo::selection::Utilities::JacMag),
   UtilityMapType(dvo::selection::UtilityMaps::Ramp),
   SamplerType(dvo::selection::Samplers::ProbExpected)
 {

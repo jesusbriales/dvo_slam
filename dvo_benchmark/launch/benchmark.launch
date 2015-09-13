@@ -20,6 +20,7 @@
 
   <!-- temporary arguments: assignment to parameters -->
   <arg name="sampling_proportion" default="1.0" />
+  <arg name="utility" default="1" /> <!-- JacMag, GradMag, Jac, TrVar -->
   <arg name="utility_map" default="2" /> <!-- Id, Ramp, Step -->
   <arg name="sampler" default="1" /> <!-- ProbExpected, ProbExact, Deterministic -->
   <arg name="coarsest_level" default="3" /> <!-- 3 or 4 -->
@@ -58,6 +59,7 @@
 
     <!-- temporary arguments: assignment to parameters -->
     <param type="double" name="sampling_proportion" value="$(arg sampling_proportion)" />
+    <param type="int" name="utility" value="$(arg utility)" />
     <param type="int" name="utility_map" value="$(arg utility_map)" />
     <param type="int" name="sampler" value="$(arg sampler)" />
     <param type="int" name="coarsest_level" value="$(arg coarsest_level)" />

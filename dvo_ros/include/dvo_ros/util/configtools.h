@@ -65,6 +65,26 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
       break;
   }
 
+  dvo::selection::Utilities::enum_t utility;
+  switch(config.utility)
+  {
+	case dvo_ros::CameraDenseTracker_JacMagUtility:
+	  utility = dvo::selection::Utilities::JacMag;
+	  break;
+	case dvo_ros::CameraDenseTracker_GradMagUtility:
+	  utility = dvo::selection::Utilities::GradMag;
+	  break;
+	case dvo_ros::CameraDenseTracker_JacUtility:
+	  utility = dvo::selection::Utilities::Jac;
+	  break;
+	case dvo_ros::CameraDenseTracker_TrVarUtility:
+	  utility = dvo::selection::Utilities::TrVar;
+	  break;
+	default:
+	  assert(false && "unknown utility type");
+	  break;
+  }
+
   dvo::selection::UtilityMaps::enum_t utility_map;
   switch(config.utility_map)
   {
@@ -116,6 +136,7 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
   tracker_cfg.IntensityDerivativeThreshold = config.min_intensity_deriv;
   tracker_cfg.DepthDerivativeThreshold = config.min_depth_deriv;
   tracker_cfg.SamplingProportion = config.sampling_proportion;
+  tracker_cfg.UtilityType = utility;
   tracker_cfg.UtilityMapType = utility_map;
   tracker_cfg.SamplerType = sampler;
 }

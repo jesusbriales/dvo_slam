@@ -72,6 +72,7 @@ rosbuild_add_library(${PROJECT_NAME}
     
     src/util/histogram.cpp
 
+    src/selection/utility.cpp
     src/selection/utility_map.cpp
     src/selection/sampler.cpp
     src/selection/solvers.cpp

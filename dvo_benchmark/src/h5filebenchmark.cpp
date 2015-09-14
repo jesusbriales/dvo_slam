@@ -92,6 +92,7 @@ CompTypeConfig::CompTypeConfig()
   ADD_MEMBER(IntensityDerivativeThreshold,PredType::NATIVE_FLOAT);
   ADD_MEMBER(DepthDerivativeThreshold,PredType::NATIVE_FLOAT);
   ADD_MEMBER(SamplingProportion,PredType::NATIVE_FLOAT);
+  ADD_MEMBER(UtilityType,PredType::NATIVE_INT);
   ADD_MEMBER(UtilityMapType,PredType::NATIVE_INT);
   ADD_MEMBER(SamplerType,PredType::NATIVE_INT);
 }

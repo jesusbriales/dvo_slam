@@ -118,8 +118,9 @@ class TrVarCalculator : public UtilityCalculator
       )
   {
     // Compute covariance
-    Eigen::Matrix<double, 6, 6> cov = information.inverse();
-    Eigen::Matrix<double, 6, 1> jac;
+    Eigen::Matrix<float, 6, 6> cov = information.inverse().cast<float>();
+    Eigen::Matrix<float, 6, 6> cov2 = cov * cov;
+    Eigen::Matrix<float, 6, 1> jac;
 
     // TODO: Cov values are very low, o(-13).
     // - May this induce numeric instability?
@@ -134,8 +135,8 @@ class TrVarCalculator : public UtilityCalculator
         point_it != last_point; ++point_it, ++util_it)
     {
       // compute utility as the decrement in the trace of the covariance
-      jac = point_it->getIntensityJacobianVec6f().cast<double>(); // Necessary explicit cast in Eigen from float to double
-      *util_it = jac.dot( cov * cov * jac ) / (1.0 + jac.dot(cov * jac));
+      jac = point_it->getIntensityJacobianVec6f(); // Necessary explicit cast in Eigen from float to double
+      *util_it = jac.dot( cov2 * jac ) / (1.0 + jac.dot(cov * jac));
     }
   }
 };

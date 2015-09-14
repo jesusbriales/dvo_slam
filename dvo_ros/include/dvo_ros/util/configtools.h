@@ -91,9 +91,12 @@ void updateConfigFromDynamicReconfigure(const dvo_ros::CameraDenseTrackerConfig&
 	case dvo_ros::CameraDenseTracker_IdUtilityMap:
 	  utility_map = dvo::selection::UtilityMaps::Id;
 	  break;
-	case dvo_ros::CameraDenseTracker_RampUtilityMap:
-	  utility_map = dvo::selection::UtilityMaps::Ramp;
+  case dvo_ros::CameraDenseTracker_VarSlopeRampUtilityMap:
+    utility_map = dvo::selection::UtilityMaps::VarSlopeRamp;
 	  break;
+  case dvo_ros::CameraDenseTracker_VarScaleRampUtilityMap:
+    utility_map = dvo::selection::UtilityMaps::VarScaleRamp;
+    break;
 	case dvo_ros::CameraDenseTracker_StepUtilityMap:
 	  utility_map = dvo::selection::UtilityMaps::Step;
 	  break;

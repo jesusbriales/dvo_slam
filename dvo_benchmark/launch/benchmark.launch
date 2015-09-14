@@ -21,7 +21,7 @@
   <!-- temporary arguments: assignment to parameters -->
   <arg name="sampling_proportion" default="1.0" />
   <arg name="utility" default="1" /> <!-- JacMag, GradMag, Jac, TrVar -->
-  <arg name="utility_map" default="2" /> <!-- Id, Ramp, Step -->
+  <arg name="utility_map" default="3" /> <!-- Id, VarSlopeRamp, VarScaleRamp, Step -->
   <arg name="sampler" default="1" /> <!-- ProbExpected, ProbExact, Deterministic -->
   <arg name="coarsest_level" default="3" /> <!-- 3 or 4 -->
   <arg name="finest_level" default="1" /> <!-- 0 or 1 -->

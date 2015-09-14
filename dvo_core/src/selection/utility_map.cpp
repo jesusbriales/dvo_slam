@@ -26,11 +26,11 @@ float ProbRampMap::operator ()( Utility point_utility ) const
     return 0.0f;
 }
 
-// Functor for setup() in ProbRampMap
-struct ProbRampFunctor : public Functor
+// Functor for setup() in VarSlopeProbRampMap
+struct VarSlopeProbRampFunctor : public Functor
 {
 public:
-  ProbRampFunctor ( ProbRampMap& map, const UtilityVector& utilities ) :
+  VarSlopeProbRampFunctor ( VarSlopeProbRampMap& map, const UtilityVector& utilities ) :
     map( map ), utilities( utilities ) {}
   float operator() ( float paramValue )
   {
@@ -38,11 +38,11 @@ public:
     return map.samplingRatioConstraint( utilities );
   }
 private:
-  ProbRampMap map;
+  VarSlopeProbRampMap map;
   UtilityVector utilities;
 };
 
-void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
+void VarSlopeProbRampMap::setup(const UtilityVector& utilities, float ratio)
 {
   samplingRatio = ratio;
 
@@ -61,12 +61,66 @@ void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
   float minValue = 0.0f;
   float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
-  ProbRampFunctor fun( *this, utilities );
+  VarSlopeProbRampFunctor fun( *this, utilities );
   // Check if alpha is close enough:
   if( std::abs(fun(probMax / alpha)) < toleranceNumOfSamples )
     slope = alpha;
   else
     slope = probMax / bisect( fun, minValue, maxValue, toleranceNumOfSamples );
+}
+
+void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
+{
+  samplingRatio = ratio;
+
+  // Set x-limits in the truncated ramp heuristically
+  // Lower values of the limits should yield higher exploration and robustness
+  // but reduce precision
+  // TODO: Analyze heuristically best values
+  // Set map threshold in the utility value for the desired prefilter ratio
+//  float lowerPrctile = 0.5f;
+//  float higherPrctile = 0.75f;
+  float higherPrctile = 1.0f - samplingRatio;
+  float lowerPrctile = higherPrctile - 0.20f;
+
+  float higherThres;
+  do
+  {
+    lowerThres = nth_orderStatistic(
+          utilities,
+          std::floor( lowerPrctile * utilities.size() ) );
+    higherThres = nth_orderStatistic(
+          utilities,
+          std::floor( higherPrctile * utilities.size() ) );
+
+    // Compute the expected num of samples with the current configuration,
+    // with non-normalized profile, which is equivalent to probMax of 1
+    // Use a simple proportional rule (works for this simple profile)
+    probMax = 1.0f;
+    slope = probMax / (higherThres-lowerThres); // Set value for current non-normalized profile
+    probMax = ratio * float(utilities.size()) / expectedNumOfSamples( utilities );
+
+    // Check probMax is <=1.0, otherwise the profile is too restrictive
+    // and the x-limits must be lowered
+    if( probMax <= 1.0f )
+      break;
+    else
+    {
+//      lowerPrctile /= 2.0f;
+//      higherPrctile /= 2.0f;
+      lowerPrctile -= 0.10f;
+      higherPrctile -= 0.10f;
+      // Assure non negative
+      lowerPrctile = std::max(lowerPrctile, 0.0f);
+      higherPrctile = std::max(higherPrctile, 0.0f);
+    }
+  } while( true ); // Exit is performed earlier if probMax <= 1.0f
+
+  // Set truncated ramp parameters from computed values
+  // lowerThres is done
+  // probMax is done
+  slope = probMax / (higherThres-lowerThres);
+
 }
 
 // Operator for the step map,
@@ -111,8 +165,10 @@ const char* UtilityMaps::str(enum_t type)
   {
     case UtilityMaps::Id:
       return "Id";
-    case UtilityMaps::Ramp:
-      return "Probabilistic ramp";
+    case UtilityMaps::VarSlopeRamp:
+      return "Variable slope truncated ramp";
+    case UtilityMaps::VarScaleRamp:
+      return "Variable scale truncated ramp";
     case UtilityMaps::Step:
       return "Step function";
     default:
@@ -126,7 +182,8 @@ const char* UtilityMaps::str(enum_t type)
 pUtilityMap* UtilityMaps::get(UtilityMaps::enum_t type, size_t num)
 {
   static std::vector<IdMap> id;
-  static std::vector<ProbRampMap> probRamp;
+  static std::vector<VarSlopeProbRampMap> varSlopeRamp;
+  static std::vector<VarScaleProbRampMap> varScaleRamp;
   static std::vector<StepMap> probStep;
 
   static std::vector<pUtilityMap> pointers(num);
@@ -140,11 +197,18 @@ pUtilityMap* UtilityMaps::get(UtilityMaps::enum_t type, size_t num)
       pointers[i] = (UtilityMap*)(&id[i]);
     return pointers.data();
   }
-  case UtilityMaps::Ramp:
+  case UtilityMaps::VarSlopeRamp:
   {
-    probRamp.resize(num);
+    varSlopeRamp.resize(num);
     for(size_t i=0; i<num; ++i)
-      pointers[i] = (UtilityMap*)(&probRamp[i]);
+      pointers[i] = (UtilityMap*)(&varSlopeRamp[i]);
+    return pointers.data();
+  }
+  case UtilityMaps::VarScaleRamp:
+  {
+    varScaleRamp.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (UtilityMap*)(&varScaleRamp[i]);
     return pointers.data();
   }
   case UtilityMaps::Step:

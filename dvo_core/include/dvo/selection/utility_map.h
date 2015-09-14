@@ -79,10 +79,21 @@ class ProbRampMap : public ProbabilityMap
 {
 public:
   virtual float operator() ( Utility ) const;
-  void setup(const UtilityVector&, float ratio);
 
 public:
   float lowerThres, slope, probMax; // Map parameters
+};
+
+class VarSlopeProbRampMap : public ProbRampMap
+{
+public:
+  void setup(const UtilityVector&, float ratio);
+};
+
+class VarScaleProbRampMap : public ProbRampMap
+{
+public:
+  void setup(const UtilityVector&, float ratio);
 };
 
 class StepMap : public ProbabilityMap
@@ -99,10 +110,11 @@ typedef UtilityMap* pUtilityMap;
 
 struct UtilityMaps {
   typedef enum {
-	Id,
-	Ramp,
-	Step
-	// don't forget to add to dynamic reconfigure!
+    Id,
+    VarSlopeRamp,
+    VarScaleRamp,
+    Step
+    // don't forget to add to dynamic reconfigure!
   } enum_t;
 
   static const char* str(enum_t type);

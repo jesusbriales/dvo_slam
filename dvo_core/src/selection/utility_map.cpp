@@ -23,7 +23,7 @@ float ProbRampMap::operator ()( Utility point_utility ) const
     return std::min( probMax, slope * (point_utility - lowerThres) );
   }
   else
-    return 0;
+    return 0.0f;
 }
 
 // Functor for setup() in ProbRampMap
@@ -47,7 +47,7 @@ void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
   samplingRatio = ratio;
 
   // Set lower threshold (user value for now)
-  lowerThres = 0;
+  lowerThres = 0.0f;
 
   // Set maximum selection probability
   // Set heuristically, see Oreshkin's paper
@@ -58,7 +58,7 @@ void ProbRampMap::setup(const UtilityVector& utilities, float ratio)
   // which adjusts better to the non-linearity of the problem
   float numOfSamples = samplingRatio * utilities.size();
   float alpha = numOfSamples / boost::accumulate(utilities,0.0f);
-  float minValue = 0;
+  float minValue = 0.0f;
   float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
   ProbRampFunctor fun( *this, utilities );
@@ -78,7 +78,7 @@ float StepMap::operator ()( Utility point_utility ) const
     return probMax;
   }
   else
-    return 0;
+    return 0.0f;
 }
 
 void StepMap::setup(const UtilityVector& utilities, float ratio)
@@ -86,17 +86,17 @@ void StepMap::setup(const UtilityVector& utilities, float ratio)
   samplingRatio = ratio;
 
   // Set lower threshold with a 10% margin wrt the desired ratio
-  float prefilterRatio = std::min( 1.0, ratio + 0.1 );
+  float prefilterRatio = std::min( 1.0f, ratio + 0.1f );
   // Set the threshold no lower that at a 20% of prefiltering (original value by Dellaert)
   if(prefilterRatio<0.2)
-    prefilterRatio = 0.2;
+    prefilterRatio = 0.2f;
 
   // Set map threshold in the utility value for the desired prefilter ratio
   lowerThres = nth_orderStatistic( utilities, std::floor( prefilterRatio * utilities.size() ) );
 
   // Compute the expected num of samples with the current configuration, probMax of 1
   // Use a simple proportional rule (works for this simple profile)
-  probMax = 1.0;
+  probMax = 1.0f;
   probMax = ratio * float(utilities.size()) / expectedNumOfSamples( utilities );
 
   // Debug:

@@ -121,6 +121,10 @@ class TrVarCalculator : public UtilityCalculator
     Eigen::Matrix<double, 6, 6> cov = information.inverse();
     Eigen::Matrix<double, 6, 1> jac;
 
+    // TODO: Cov values are very low, o(-13).
+    // - May this induce numeric instability?
+    // - Could be somehow normalized?
+
     // Set dimension of the utilities in the storage
     utilities.resize(1);
     utilities[0].resize( last_point - first_point );

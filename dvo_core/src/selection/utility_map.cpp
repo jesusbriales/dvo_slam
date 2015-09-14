@@ -121,6 +121,10 @@ void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
   // probMax is done
   slope = probMax / (higherThres-lowerThres);
 
+  // Debug:
+  // Check that the expected num of samples constraint is fulfilled with the new probMax
+//  float checkConstraint = samplingRatioConstraint( utilities );
+//  std::cout << "Constraint value (should be 0): " << checkConstraint << std::endl;
 }
 
 // Operator for the step map,

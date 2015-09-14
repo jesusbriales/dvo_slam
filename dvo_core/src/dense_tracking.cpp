@@ -107,8 +107,9 @@ void DenseTracker::configure(const Config& config)
     {
       information_selection_.samplingRatio = cfg.SamplingProportion;
       information_selection_.utilCalc = selection::Utilities::get(cfg.UtilityType);
-      information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType);
-      information_selection_.sampler = selection::Samplers::get(cfg.SamplerType);
+      size_t dim = selection::Utilities::dim(cfg.UtilityType);
+      information_selection_.map = selection::UtilityMaps::get(cfg.UtilityMapType,dim);
+      information_selection_.sampler = selection::Samplers::get(cfg.SamplerType,dim);
     }
   }
 }
@@ -369,7 +370,8 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
           // TODO: Try different proportions for different levels
         { // begin sampling block
           // compute utility (some metric) for each pixel
-          information_selection_.utilCalc->compute( first_point, last_point, A, utilities );
+//          information_selection_.utilCalc->compute( first_point, last_point, A, utilities );
+          information_selection_.utilCalc->compute( first_point, last_point, A );
         }
         sw_util[itctx_.Level].stop();
 
@@ -379,14 +381,18 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         {          
           // Sample points to use in the odometry
           // according to their computed utilities
-          information_selection_.map->setup( utilities, samplingRatio );
+//          information_selection_.map->setup( utilities, samplingRatio );
 
-          information_selection_.sampler->setup(
-                *information_selection_.map, utilities, samplingRatio);
+//          information_selection_.sampler->setup(
+//                *information_selection_.map, utilities, samplingRatio);
+
+//          information_selection_.selectPoints<
+//              PointWithIntensityAndDepth::VectorType::iterator> (
+//                first_point, last_point );
 
           information_selection_.selectPoints<
               PointWithIntensityAndDepth::VectorType::iterator> (
-                first_point, last_point );
+                samplingRatio, first_point, last_point );
         } // end sampling block
 
         size_t numSelectedPixels = last_point - first_point;

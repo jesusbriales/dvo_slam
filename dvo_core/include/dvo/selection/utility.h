@@ -25,8 +25,10 @@ public:
   virtual void compute(
       const PointIt& first_point,
       const PointIt& last_point,
-      const Eigen::Matrix<double, 6, 6>& information, /* necessary for some cases */
-      UtilityVector& utilities) = 0;
+      const Eigen::Matrix<double, 6, 6>& information /* necessary for some cases */
+      ) = 0;
+
+  std::vector<UtilityVector> utilities;
 };
 
 // TODO: Implement with traits instead to change only the behaviour
@@ -37,10 +39,14 @@ class JacMagCalculator : public UtilityCalculator
   void compute(
       const PointIt& first_point,
       const PointIt& last_point,
-      const Eigen::Matrix<double, 6, 6>& information, /* necessary for some cases */
-      UtilityVector& utilities)
+      const Eigen::Matrix<double, 6, 6>& information /* necessary for some cases */
+      )
   {
-    UtilityIterator util_it = utilities.begin();
+    // Set dimension of the utilities in the storage
+    utilities.resize(1);
+    utilities[0].resize( last_point - first_point );
+
+    UtilityIterator util_it = utilities[0].begin();
     for(PointIt point_it = first_point;
         point_it != last_point; ++point_it, ++util_it)
     {
@@ -55,10 +61,14 @@ class GradMagCalculator : public UtilityCalculator
   void compute(
       const PointIt& first_point,
       const PointIt& last_point,
-      const Eigen::Matrix<double, 6, 6>& information, /* necessary for some cases */
-      UtilityVector& utilities)
+      const Eigen::Matrix<double, 6, 6>& information /* necessary for some cases */
+      )
   {
-    UtilityIterator util_it = utilities.begin();
+    // Set dimension of the utilities in the storage
+    utilities.resize(1);
+    utilities[0].resize( last_point - first_point );
+
+    UtilityIterator util_it = utilities[0].begin();
     for(PointIt point_it = first_point;
         point_it != last_point; ++point_it, ++util_it)
     {
@@ -68,19 +78,54 @@ class GradMagCalculator : public UtilityCalculator
   }
 };
 
+// TODO: Create vector of vector6
+class JacCalculator : public UtilityCalculator
+{
+  void compute(
+      const PointIt& first_point,
+      const PointIt& last_point,
+      const Eigen::Matrix<double, 6, 6>& information /* necessary for some cases */
+      )
+  {
+    // Set dimension of the utilities in the storage
+    utilities.resize(6);
+    for(size_t i=0; i<6; i++)
+      utilities[i].resize( last_point - first_point );
+
+    size_t utilIdx = 0;
+    Eigen::Matrix<float, 6, 1> jac;
+    for(PointIt point_it = first_point;
+        point_it != last_point; ++point_it, ++utilIdx)
+    {
+      // store jacobian images
+      jac = point_it->getIntensityJacobianVec6f();
+      utilities[0][utilIdx] = std::abs(jac[0]);
+      utilities[1][utilIdx] = std::abs(jac[1]);
+      utilities[2][utilIdx] = std::abs(jac[2]);
+      utilities[3][utilIdx] = std::abs(jac[3]);
+      utilities[4][utilIdx] = std::abs(jac[4]);
+      utilities[5][utilIdx] = std::abs(jac[5]);
+    }
+  }
+};
+
 class TrVarCalculator : public UtilityCalculator
 {
   void compute(
       const PointIt& first_point,
       const PointIt& last_point,
-      const Eigen::Matrix<double, 6, 6>& information, /* necessary for some cases */
-      UtilityVector& utilities)
+      const Eigen::Matrix<double, 6, 6>& information /* necessary for some cases */
+      )
   {
     // Compute covariance
     Eigen::Matrix<double, 6, 6> cov = information.inverse();
     Eigen::Matrix<double, 6, 1> jac;
 
-    UtilityIterator util_it = utilities.begin();
+    // Set dimension of the utilities in the storage
+    utilities.resize(1);
+    utilities[0].resize( last_point - first_point );
+
+    UtilityIterator util_it = utilities[0].begin();
     for(PointIt point_it = first_point;
         point_it != last_point; ++point_it, ++util_it)
     {
@@ -103,6 +148,7 @@ struct Utilities {
   static const char* str(enum_t type);
 
   static UtilityCalculator* get(enum_t type);
+  static size_t dim(enum_t type);
 };
 
 } /* namespace selection */

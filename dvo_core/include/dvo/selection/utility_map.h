@@ -95,6 +95,8 @@ public:
   float lowerThres, probMax; // Map parameters
 };
 
+typedef UtilityMap* pUtilityMap;
+
 struct UtilityMaps {
   typedef enum {
 	Id,
@@ -105,7 +107,7 @@ struct UtilityMaps {
 
   static const char* str(enum_t type);
 
-  static UtilityMap* get(enum_t type);
+  static pUtilityMap* get(enum_t type, size_t num = 1);
 };
 
 

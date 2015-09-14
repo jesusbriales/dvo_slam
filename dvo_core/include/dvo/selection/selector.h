@@ -14,35 +14,59 @@ class Selector
 {
 public:
   template <typename it_type>
-  void selectPoints( it_type&, it_type& );
+  void selectPoints( float samplingRatio, it_type&, it_type& );
 
 public:
   UtilityCalculator* utilCalc;
-  UtilityMap* map;
-  Sampler* sampler;
+  pUtilityMap* map;
+  pSampler* sampler;
 
   float samplingRatio;
 };
 
 template <typename it_type>
-void Selector::selectPoints(
+void Selector::selectPoints( float samplingRatio,
 	it_type& first_point, it_type& last_point )
 {
+  // Dimension of the selection problem (num of elements in a utility vector)
+  size_t dim = utilCalc->utilities.size();
+
+  for(size_t idx=0; idx < dim; idx++)
+  {
+    // THIS IS FAILING:
+    // Return a vector of objects in the get method, instead of a pointer?
+
+    // Setup map
+    UtilityMap* currMap = *(map + idx);
+    currMap->setup( utilCalc->utilities[idx], samplingRatio );
+
+    // Setup sampler
+    Sampler* currSampler = *(sampler + idx);
+    currSampler->setup( *currMap, utilCalc->utilities[idx], samplingRatio );
+  }
+
   // TODO: Caution with accessing unwritten memory
+  // TODO: Fix types for pSampler*
   it_type selected_point_it = first_point;
   for(it_type point_it = first_point;
 	  point_it != last_point; ++point_it)
   {
-	if( sampler->makeDecision() )
+    for( pSampler* p = sampler; p < sampler + dim; ++p )
     {
-      *selected_point_it = *point_it;
-      ++selected_point_it;
+      if( (*p)->makeDecision() )
+      {
+        *selected_point_it = *point_it;
+        ++selected_point_it;
+        break;
+      }
     }
-	// Increment internal operator in the sampler
-	sampler->pointToNext();
+
+    // Increment internally pointed point in the samplers
+    for( pSampler* p = sampler; p < sampler + dim; ++p )
+      (*p)->pointToNext();
   }
 
-  last_point = selected_point_it - 1;
+  last_point = selected_point_it - 1; // Need to remove 1? Check size
 }
 
 } /* namespace selection */

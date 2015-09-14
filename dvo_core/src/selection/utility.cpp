@@ -31,6 +31,7 @@ UtilityCalculator* Utilities::get(Utilities::enum_t type)
   // (as complete Jacobian) is used
   static JacMagCalculator jacMagCalc;
   static GradMagCalculator gradMagCalc;
+  static JacCalculator jacCalc;
   static TrVarCalculator trVarCalc;
 
   switch(type)
@@ -39,6 +40,8 @@ UtilityCalculator* Utilities::get(Utilities::enum_t type)
       return (UtilityCalculator*)&jacMagCalc;
     case Utilities::GradMag:
       return (UtilityCalculator*)&gradMagCalc;
+    case Utilities::Jac:
+      return (UtilityCalculator*)&jacCalc;
     case Utilities::TrVar:
       return (UtilityCalculator*)&trVarCalc;
     default:
@@ -47,6 +50,17 @@ UtilityCalculator* Utilities::get(Utilities::enum_t type)
   assert(false && "Unknown utility calculator type!");
 
   return 0;
+}
+
+size_t Utilities::dim(Utilities::enum_t type)
+{
+  switch(type)
+  {
+  case Utilities::Jac:
+    return 6;
+  default:
+    return 1;
+  }
 }
 
 

@@ -123,22 +123,39 @@ const char* UtilityMaps::str(enum_t type)
   return "";
 }
 
-UtilityMap* UtilityMaps::get(UtilityMaps::enum_t type)
+pUtilityMap* UtilityMaps::get(UtilityMaps::enum_t type, size_t num)
 {
-  static IdMap id;
-  static ProbRampMap probRamp;
-  static StepMap probStep;
+  static std::vector<IdMap> id;
+  static std::vector<ProbRampMap> probRamp;
+  static std::vector<StepMap> probStep;
+
+  static std::vector<pUtilityMap> pointers(num);
 
   switch(type)
   {
-    case UtilityMaps::Id:
-      return (UtilityMap*)&id;
-    case UtilityMaps::Ramp:
-      return (UtilityMap*)&probRamp;
-    case UtilityMaps::Step:
-      return (UtilityMap*)&probStep;
-    default:
-      break;
+  case UtilityMaps::Id:
+  {
+    id.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (UtilityMap*)(&id[i]);
+    return pointers.data();
+  }
+  case UtilityMaps::Ramp:
+  {
+    probRamp.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (UtilityMap*)(&probRamp[i]);
+    return pointers.data();
+  }
+  case UtilityMaps::Step:
+  {
+    probStep.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (UtilityMap*)(&probStep[i]);
+    return pointers.data();
+  }
+  default:
+    break;
   }
   assert(false && "Unknown utility map type!");
 

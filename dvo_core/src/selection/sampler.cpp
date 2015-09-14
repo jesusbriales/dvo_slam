@@ -80,22 +80,39 @@ const char* Samplers::str(enum_t type)
   return "";
 }
 
-Sampler* Samplers::get(Samplers::enum_t type)
+pSampler* Samplers::get(Samplers::enum_t type, size_t num)
 {
-  static ProbExpectedSampler probExpected;
-  static ProbExactSampler probExact;
-  static DeterministicSampler deterministic;
+  static std::vector<ProbExpectedSampler> probExpected;
+  static std::vector<ProbExactSampler> probExact;
+  static std::vector<DeterministicSampler> deterministic;
+
+  static std::vector<pSampler> pointers(num);
 
   switch(type)
   {
-    case Samplers::ProbExpected:
-      return (Sampler*)&probExpected;
-    case Samplers::ProbExact:
-      return (Sampler*)&probExact;
-    case Samplers::Deterministic:
-      return (Sampler*)&deterministic;
-    default:
-      break;
+  case Samplers::ProbExpected:
+  {
+    probExpected.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (Sampler*)(&probExpected[i]);
+    return pointers.data();
+  }
+  case Samplers::ProbExact:
+  {
+    probExact.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (Sampler*)(&probExact[i]);
+    return pointers.data();
+  }
+  case Samplers::Deterministic:
+  {
+    deterministic.resize(num);
+    for(size_t i=0; i<num; ++i)
+      pointers[i] = (Sampler*)(&deterministic[i]);
+    return pointers.data();
+  }
+  default:
+    break;
   }
   assert(false && "Unknown sampler type!");
 

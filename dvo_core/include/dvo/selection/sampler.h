@@ -83,6 +83,8 @@ protected:
 // Struct of available implemented samplers
 // and methods that take the type as input
 // to produce a generic pointer that control them all
+typedef Sampler* pSampler;
+
 struct Samplers {
   typedef enum {
   ProbExpected,
@@ -94,7 +96,7 @@ struct Samplers {
 
   static const char* str(enum_t type);
 
-  static Sampler* get(enum_t type);
+  static pSampler* get(enum_t type, size_t num = 1);
 };
 
 } /* namespace selection */

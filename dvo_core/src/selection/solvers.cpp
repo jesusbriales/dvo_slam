@@ -22,7 +22,11 @@ float bisect( Functor& fun, float a, float b, float tolerance )
 
   float distanceThres = 2*tolerance;
   float c;
-  while( std::abs(fb-fa) > distanceThres )
+  size_t counter = 0;
+  while( std::abs(fb-fa) > distanceThres && counter < 100 )
+    // Repeat while:
+    // distance between values in a and b is above threshold
+    // the number of iterations is lower than 100
   {
     c = 0.5f * (a + b);
     fc = fun(c);
@@ -37,6 +41,8 @@ float bisect( Functor& fun, float a, float b, float tolerance )
       b = c;
       fb = fc;
     }
+    // Increment the iteration counter
+    ++counter;
   }
   return 0.5f * (a+b);
 }

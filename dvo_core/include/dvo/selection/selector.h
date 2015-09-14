@@ -30,6 +30,9 @@ void Selector::selectPoints( float samplingRatio,
 {
   // Dimension of the selection problem (num of elements in a utility vector)
   size_t dim = utilCalc->utilities.size();
+  // Divide the sampling ratio between the number of dimensions
+  // to approximately sum up to the desired total samplingRatio
+  samplingRatio /= dim;
 
   for(size_t idx=0; idx < dim; idx++)
   {

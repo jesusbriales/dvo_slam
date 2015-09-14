@@ -18,12 +18,12 @@ namespace selection
 // then a ramp and then an upper threshold
 float ProbRampMap::operator ()( Utility point_utility ) const
 {
-  if( point_utility > lowerThres )
-  {
-    return std::min( probMax, slope * (point_utility - lowerThres) );
-  }
-  else
+  if( point_utility < lowerThres )
     return 0.0f;
+  else if( point_utility > upperThres )
+    return probMax;
+  else
+    return slope() * (point_utility - lowerThres);
 }
 
 // Functor for setup() in VarSlopeProbRampMap
@@ -34,7 +34,7 @@ public:
     map( map ), utilities( utilities ) {}
   float operator() ( float paramValue )
   {
-    map.slope = map.probMax / paramValue;
+    map.upperThres = paramValue;
     return map.samplingRatioConstraint( utilities );
   }
 private:
@@ -58,15 +58,14 @@ void VarSlopeProbRampMap::setup(const UtilityVector& utilities, float ratio)
   // which adjusts better to the non-linearity of the problem
   float numOfSamples = samplingRatio * utilities.size();
   float alpha = numOfSamples / boost::accumulate(utilities,0.0f);
+  upperThres = probMax / alpha;
   float minValue = 0.0f;
-  float maxValue = 2.0f * (probMax / alpha); // Set a non-too-high value to reduce number of bisection steps
+  float maxValue = 2.0f * upperThres; // Set a non-too-high value to reduce number of bisection steps
   float toleranceNumOfSamples = 1.0f;
   VarSlopeProbRampFunctor fun( *this, utilities );
   // Check if alpha is close enough:
-  if( std::abs(fun(probMax / alpha)) < toleranceNumOfSamples )
-    slope = alpha;
-  else
-    slope = probMax / bisect( fun, minValue, maxValue, toleranceNumOfSamples );
+  if( std::abs(fun(upperThres)) > toleranceNumOfSamples )
+    upperThres = bisect( fun, minValue, maxValue, toleranceNumOfSamples );
 }
 
 void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
@@ -83,13 +82,12 @@ void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
   float higherPrctile = 1.0f - samplingRatio;
   float lowerPrctile = higherPrctile - 0.20f;
 
-  float higherThres;
   do
   {
     lowerThres = nth_orderStatistic(
           utilities,
           std::floor( lowerPrctile * utilities.size() ) );
-    higherThres = nth_orderStatistic(
+    upperThres = nth_orderStatistic(
           utilities,
           std::floor( higherPrctile * utilities.size() ) );
 
@@ -97,7 +95,6 @@ void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
     // with non-normalized profile, which is equivalent to probMax of 1
     // Use a simple proportional rule (works for this simple profile)
     probMax = 1.0f;
-    slope = probMax / (higherThres-lowerThres); // Set value for current non-normalized profile
     probMax = ratio * float(utilities.size()) / expectedNumOfSamples( utilities );
 
     // Check probMax is <=1.0, otherwise the profile is too restrictive
@@ -115,11 +112,6 @@ void VarScaleProbRampMap::setup(const UtilityVector& utilities, float ratio)
       higherPrctile = std::max(higherPrctile, 0.0f);
     }
   } while( true ); // Exit is performed earlier if probMax <= 1.0f
-
-  // Set truncated ramp parameters from computed values
-  // lowerThres is done
-  // probMax is done
-  slope = probMax / (higherThres-lowerThres);
 
   // Debug:
   // Check that the expected num of samples constraint is fulfilled with the new probMax

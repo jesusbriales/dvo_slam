@@ -79,9 +79,13 @@ class ProbRampMap : public ProbabilityMap
 {
 public:
   virtual float operator() ( Utility ) const;
+  inline float slope(void) const
+  {
+    return probMax / (upperThres-lowerThres);
+  }
 
 public:
-  float lowerThres, slope, probMax; // Map parameters
+  float lowerThres, upperThres, probMax; // Map parameters
 };
 
 class VarSlopeProbRampMap : public ProbRampMap

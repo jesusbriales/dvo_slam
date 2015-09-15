@@ -370,7 +370,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
           // TODO: Try different proportions for different levels
         { // begin sampling block
           // compute utility (some metric) for each pixel
-//          information_selection_.utilCalc->compute( first_point, last_point, A, utilities );
           information_selection_.utilCalc->compute( first_point, last_point, A );
         }
         sw_util[itctx_.Level].stop();
@@ -381,15 +380,6 @@ bool DenseTracker::match(dvo::core::PointSelection& reference, dvo::core::RgbdIm
         {          
           // Sample points to use in the odometry
           // according to their computed utilities
-//          information_selection_.map->setup( utilities, samplingRatio );
-
-//          information_selection_.sampler->setup(
-//                *information_selection_.map, utilities, samplingRatio);
-
-//          information_selection_.selectPoints<
-//              PointWithIntensityAndDepth::VectorType::iterator> (
-//                first_point, last_point );
-
           information_selection_.selectPoints<
               PointWithIntensityAndDepth::VectorType::iterator> (
                 samplingRatio, first_point, last_point );
